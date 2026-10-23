@@ -515,19 +515,13 @@ export default function SongMapper() {
       {/* New-map confirmation from the note emoji */}
       {noteNewMap !== null && (
         <ConfirmModal
-          message="Start a whole new map? This clears ALL columns and loads a single empty map, and cannot be undone."
+          message="Start a whole new map? This clears ALL columns and cannot be undone."
           onConfirm={() => {
             undoStackRef.current = [];
             redoStackRef.current = [];
             setHistVer(v => v + 1);
-            setMapCount(1);
-            setColumns([0]);
-            setCollapsedCols([]);
-            setSelectedCols([0]);
-            setAnchorCol(0);
-            setActiveIndex(0);
-            columnRefs.current[0]?.startNewMap();
             setNoteNewMap(null);
+            setCountPrompt({ kind: "new" });
           }}
           onCancel={() => setNoteNewMap(null)}
           confirmLabel="Start New Map"
