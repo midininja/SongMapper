@@ -360,6 +360,20 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     };
   }, [ytPlayerId]);
 
+  // Resize the YouTube iframe when mediaHeight changes — the YT API creates
+  // the iframe with fixed pixel dimensions that don't respond to container CSS.
+  useEffect(() => {
+    if (mediaType !== "youtube") return;
+    const iframe = document.getElementById(ytPlayerId)?.querySelector("iframe") || document.getElementById(ytPlayerId);
+    if (iframe) {
+      iframe.style.height = `${mediaHeight}px`;
+      iframe.style.width = "100%";
+    }
+    if (playerRef.current?.setSize) {
+      try { playerRef.current.setSize("100%", mediaHeight); } catch {}
+    }
+  }, [mediaHeight, mediaType, ytPlayerId]);
+
   function initYTPlayer(playerId) {
     if (playerRef.current && typeof playerRef.current.getPlayerState === "function") return;
     const el = document.getElementById(playerId);
@@ -1595,6 +1609,27 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
             {/* YouTube */}
             <div style={{ display: mediaType === "youtube" ? "block" : "none", width: "100%" }}>
               <div id={ytPlayerId} style={{ width: "100%", height: mediaHeight, overflow: "hidden" }} />
+              {mediaType && (
+                <div
+                  className="sm-resize-handle"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    const startY = e.clientY;
+                    const startH = mediaHeight;
+                    const onMove = (ev) => {
+                      const delta = ev.clientY - startY;
+                      setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
+                    };
+                    const onUp = () => {
+                      document.removeEventListener("pointermove", onMove);
+                      document.removeEventListener("pointerup", onUp);
+                    };
+                    document.addEventListener("pointermove", onMove);
+                    document.addEventListener("pointerup", onUp);
+                  }}
+                  title="Drag up or down to resize the media player"
+                />
+              )}
               {videoLoaded && (
                 <SectionEditBar {...barProps} isPlaying={ytPlaying} onToggle={toggleYTPlayPause} showVolume={false} />
               )}
@@ -1638,6 +1673,27 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                       <div style={{ fontSize: 11, color: "#f39c12", marginTop: 4 }}>Drop the audio file here or click to browse</div>
                     </div>
                   )}
+                  {mediaType && (
+                    <div
+                      className="sm-resize-handle"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        const startY = e.clientY;
+                        const startH = mediaHeight;
+                        const onMove = (ev) => {
+                          const delta = ev.clientY - startY;
+                          setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
+                        };
+                        const onUp = () => {
+                          document.removeEventListener("pointermove", onMove);
+                          document.removeEventListener("pointerup", onUp);
+                        };
+                        document.addEventListener("pointermove", onMove);
+                        document.addEventListener("pointerup", onUp);
+                      }}
+                      title="Drag up or down to resize the media player"
+                    />
+                  )}
                   <SectionEditBar {...barProps} isPlaying={isPlaying} onToggle={toggleLocalPlay} showVolume />
                 </div>
               );
@@ -1656,6 +1712,27 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                     {activeUrl.split("/").pop() || "AuralPapers Audio"}
                   </div>
                 </div>
+                {mediaType && (
+                  <div
+                    className="sm-resize-handle"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      const startY = e.clientY;
+                      const startH = mediaHeight;
+                      const onMove = (ev) => {
+                        const delta = ev.clientY - startY;
+                        setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
+                      };
+                      const onUp = () => {
+                        document.removeEventListener("pointermove", onMove);
+                        document.removeEventListener("pointerup", onUp);
+                      };
+                      document.addEventListener("pointermove", onMove);
+                      document.addEventListener("pointerup", onUp);
+                    }}
+                    title="Drag up or down to resize the media player"
+                  />
+                )}
                 {videoLoaded
                   ? <SectionEditBar {...barProps} isPlaying={apPlaying} onToggle={toggleApPlay} showVolume />
                   : (
@@ -1679,6 +1756,27 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                 <iframe id={scIframeId} width="100%" height={mediaHeight} scrolling="no" frameBorder="no" allow="autoplay"
                   src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(activeUrl)}&color=%230a5cd6&auto_play=false&show_artwork=true`}
                   style={{ display: "block" }} />
+                {mediaType && (
+                  <div
+                    className="sm-resize-handle"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      const startY = e.clientY;
+                      const startH = mediaHeight;
+                      const onMove = (ev) => {
+                        const delta = ev.clientY - startY;
+                        setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
+                      };
+                      const onUp = () => {
+                        document.removeEventListener("pointermove", onMove);
+                        document.removeEventListener("pointerup", onUp);
+                      };
+                      document.addEventListener("pointermove", onMove);
+                      document.addEventListener("pointerup", onUp);
+                    }}
+                    title="Drag up or down to resize the media player"
+                  />
+                )}
                 {videoLoaded
                   ? <SectionEditBar {...barProps} isPlaying={scPlaying} onToggle={toggleScPlay} showVolume={false} />
                   : (
@@ -1709,29 +1807,6 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
               />
             )}
           </div>
-
-          {/* Draggable bottom border: drag down to increase media display height */}
-          {mediaType && (
-            <div
-              className="sm-resize-handle"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                const startY = e.clientY;
-                const startH = mediaHeight;
-                const onMove = (ev) => {
-                  const delta = ev.clientY - startY;
-                  setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
-                };
-                const onUp = () => {
-                  document.removeEventListener("pointermove", onMove);
-                  document.removeEventListener("pointerup", onUp);
-                };
-                document.addEventListener("pointermove", onMove);
-                document.addEventListener("pointerup", onUp);
-              }}
-              title="Drag up or down to resize the media player"
-            />
-          )}
 
           {/* Section strip + scroll */}
           <div
