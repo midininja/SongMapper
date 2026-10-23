@@ -368,9 +368,8 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     if (iframe) {
       iframe.style.height = `${mediaHeight}px`;
       iframe.style.width = "100%";
-    }
-    if (playerRef.current?.setSize) {
-      try { playerRef.current.setSize("100%", mediaHeight); } catch {}
+    }    if (playerRef.current?.setSize) {
+      try { playerRef.current.setSize(640, mediaHeight); } catch {}
     }
   }, [mediaHeight, mediaType, ytPlayerId]);
 
@@ -1647,7 +1646,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                           onLoadedMetadata={() => handleAudioMetadata(localPlayerRef)}
                           onTimeUpdate={() => handleAudioTimeUpdate(localPlayerRef)}
                           onEnded={() => setIsPlaying(false)}
-                          style={{ width: "100%", maxHeight: mediaHeight, display: "block" }} />
+                          style={{ width: "100%", height: mediaHeight, objectFit: "contain", display: "block" }} />
                         <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, color: "#fff", background: "rgba(0,0,0,0.5)", padding: "1px 5px", borderRadius: 3, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none", WebkitUserSelect: "none" }}>{localFileName}</div>
                       </div>
                     ) : (
