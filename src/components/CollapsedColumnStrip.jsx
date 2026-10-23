@@ -14,8 +14,8 @@ export default function CollapsedColumnStrip({ index, order, selected, preview, 
         display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
         width: 40, minWidth: 40, flexShrink: 0, order, padding: "8px 0",
         background: TH.sidebar, borderRight: `1px solid ${TH.sidebarBorder}`,
-        outline: selected ? "2px solid #735bc1" : preview ? "2px dashed #735bc1" : "none",
-        outlineOffset: -2, position: "relative",
+        outline: selected ? "2px solid #735bc1" : preview ? "2px dashed #735bc1" : "2px solid transparent",
+        outlineOffset: -2, position: "relative", boxSizing: "border-box",
         userSelect: "none", WebkitUserSelect: "none", color: TH.fg,
       }}
     >

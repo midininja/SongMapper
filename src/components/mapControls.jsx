@@ -30,27 +30,29 @@ export function pickContrasting(lastHex) {
 export const MAX_ZOOM = 40;
 export const SAMPLER_KEYS = ["z","x","c","v","a","s","d","f","q","w","e","r","1","2","3","4"];
 
-// Ableton Learn-inspired theme
+// Ableton Learn-inspired theme — tuned for vision-impaired accessibility
+// (higher-contrast text, darker borders, larger font sizes)
 export const TH = {
   bg: "#ffffff",
-  fg: "#0f0f0f",
-  sidebar: "#f5f5f5",
-  sidebarBorder: "#e0e0e0",
+  fg: "#0a0a0a",
+  sidebar: "#f0f0f0",
+  sidebarBorder: "#c8c8c8",
   inputBg: "#ffffff",
-  inputBorder: "#d0d0d0",
-  inputFg: "#0f0f0f",
-  btnBg: "#f0f0f0",
-  btnBorder: "#d0d0d0",
-  btnFg: "#333",
-  btnDisabled: "#e8e8e8",
-  btnDisabledFg: "#bbb",
-  label: "#888",
-  rightSidebar: "#fafafa",
-  controlBar: "#f0f0f0",
-  controlBarBorder: "#e0e0e0",
-  controlBarText: "#666",
-  timelineBg: "#e8e8e8",
+  inputBorder: "#b0b0b0",
+  inputFg: "#0a0a0a",
+  btnBg: "#eaeaea",
+  btnBorder: "#b0b0b0",
+  btnFg: "#222",
+  btnDisabled: "#e0e0e0",
+  btnDisabledFg: "#999",
+  label: "#555",
+  rightSidebar: "#f5f5f5",
+  controlBar: "#eaeaea",
+  controlBarBorder: "#c8c8c8",
+  controlBarText: "#444",
+  timelineBg: "#dcdcdc",
   accent: "#0a5cd6",
+  accentHigh: "#00449e",
 };
 
 export function getYouTubeId(url) {

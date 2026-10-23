@@ -13,10 +13,10 @@ export default function SectionEditBar({
 }) {
   const items = [
     <button key="play" onPointerDown={e => { e.preventDefault(); onToggle(); }}
-      style={{ background: "#1abc9c", border: "none", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: "bold", flexShrink: 0 }}>
+      style={{ background: "#1abc9c", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 14, color: "#fff", fontWeight: "bold", flexShrink: 0 }}>
       {isPlaying ? "⏸" : "▶"}
     </button>,
-    <span key="time" style={{ fontSize: 10, color: TH.controlBarText, flexShrink: 0, userSelect: "none", WebkitUserSelect: "none" }}>{formatTime(currentTime)} / {formatTime(duration)}</span>,
+    <span key="time" style={{ fontSize: 12, color: TH.controlBarText, flexShrink: 0, userSelect: "none", WebkitUserSelect: "none" }}>{formatTime(currentTime)} / {formatTime(duration)}</span>,
     <LoopButton key="loop" loopActive={loopActive} loopCount={loopCount} canLoop={canLoop} onToggle={onToggleLoop} unit={loopUnit} singleLabel={loopSingleLabel} />,
     <SliceButton key="slice" selectedSection={selectedSection} onSlice={onSlice} sliceTarget={sliceTarget} />,
     ...SectionControlItems({ videoLoaded, addSection: onAddSection, deleteSection: onDelete, showWaveform, onToggleWaveform, binTooltip, canDelete, showWaveformToggle }),
@@ -27,7 +27,7 @@ export default function SectionEditBar({
     items.push(
       <div key="vol" style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
         {mediaType === "local" && <DeselectButton hasSelection={hasSelection} onDeselect={onDeselect} />}
-        <span style={{ fontSize: 11, color: TH.controlBarText }}>vol</span>
+        <span style={{ fontSize: 12, color: TH.controlBarText }}>vol</span>
         <input type="range" min={0} max={1} step={0.01} value={volume}
           onChange={e => onVolumeChange(parseFloat(e.target.value))}
           onPointerDown={e => e.stopPropagation()}

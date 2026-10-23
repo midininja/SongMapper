@@ -87,11 +87,30 @@
 .sm-label {
   cursor: pointer;
   border-radius: 3px;
-  transition: box-shadow 0.12s ease, background 0.12s ease;
+  transition: box-shadow 0.18s ease, background 0.18s ease;
 }
 .sm-label:hover {
   background: rgba(255, 255, 255, 0.16);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 0 8px 2px rgba(115, 91, 193, 0.6);
+}
+
+/* ── Accessibility / vision-impaired support ─────────────────────────── */
+/* Honour the user's browser-level font-size and zoom without breaking layout */
+html { font-size: 16px; }
+
+/* Focus rings are always visible — never removed by :focus { outline: none } */
+*:focus-visible {
+  outline: 2px solid #0a5cd6;
+  outline-offset: 1px;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Bulleted lists in note rows — bullet sits inline with regular text, two indent levels */
@@ -118,4 +137,41 @@
 }
 .sm-toast {
   animation: sm-toast-fade 1.2s ease forwards;
+}
+
+/* ── Smooth resize transitions ───────────────────────────────────────── */
+/* Applied to column outlines and media containers so window resize
+   and media-height drag feel smoother, not jarring. */
+.sm-col {
+  transition: outline-color 0.15s ease;
+}
+.sm-media-wrap {
+  transition: height 0.08s ease;
+}
+.sm-resize-handle {
+  height: 7px;
+  cursor: ns-resize;
+  background: #d0d0d0;
+  border-top: 1px solid #c0c0c0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, height 0.15s ease;
+}
+.sm-resize-handle:hover {
+  background: #0a5cd6;
+  height: 9px;
+}
+.sm-resize-handle::after {
+  content: "";
+  width: 32px;
+  height: 2px;
+  border-radius: 1px;
+  background: #999;
+  transition: background 0.15s ease;
+}
+.sm-resize-handle:hover::after {
+  background: #fff;
 }

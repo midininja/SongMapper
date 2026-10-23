@@ -97,6 +97,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const waveformLoadIdRef = useRef(0);
   const [mediaStart, setMediaStart] = useState(0);
   const [mediaEnd, setMediaEnd] = useState(0);
+  const [mediaHeight, setMediaHeight] = useState(160); // draggable bottom border
 
   // Keep a ref of sections so async media callbacks can tell fresh loads apart from
   // saved-map loads / re-attached files (which must NOT re-init sections).
@@ -1517,7 +1518,8 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
         onPointerMove={(e) => onHover?.(index, e)}
         onDragOver={(e) => { if (grab) { e.preventDefault(); grab.onGrabOver(index, e); } }}
         onDrop={(e) => { if (grab) { e.preventDefault(); grab.onGrabDrop(index, e); } }}
-        style={{ display: collapsed ? "none" : "flex", flex: 1, minWidth: 0, order, color: TH.fg, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", outline: selected ? "2px solid #735bc1" : preview ? "2px dashed #735bc1" : "none", outlineOffset: -2, position: "relative" }}>
+        className="sm-col"
+        style={{ display: collapsed ? "none" : "flex", flex: 1, minWidth: 0, order, color: TH.fg, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", border: selected ? "2px solid #735bc1" : preview ? "2px dashed #735bc1" : "2px solid transparent", boxSizing: "border-box", position: "relative" }}>
 
         {grab && grab.dropTargetId === index && (
           <div style={{ position: "absolute", top: 0, bottom: 0, left: grab.dropSide === "left" ? 0 : undefined, right: grab.dropSide === "right" ? 0 : undefined, width: 3, background: "#735bc1", zIndex: 700 }} />
@@ -1534,7 +1536,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                   onPointerDown={(e) => { wasSelectedRef.current = selected; onSelect?.(index, e); }}
                   onClick={() => onToggleCollapse?.(index)}
                   title="Collapse column"
-                  style={{ cursor: "pointer", background: "transparent", border: "none", color: "#999", fontSize: 9, lineHeight: 1, padding: "1px 2px" }}
+                  style={{ cursor: "pointer", background: "transparent", border: "none", color: "#777", fontSize: 11, lineHeight: 1, padding: "2px 3px" }}
                 >▶</button>
                 <button
                   draggable
@@ -1556,7 +1558,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                 />
               ) : (
                 <h2 onClick={() => { if (wasSelectedRef.current && selected) setEditingMapName(true); }} title={selected ? "Click to rename" : "Click to select this column"} className={selected ? "sm-label" : undefined}
-                  style={{ margin: 0, fontSize: 16, fontWeight: "bold", color: "#735bc1", cursor: "pointer", userSelect: "none", borderBottom: "2px solid transparent", padding: "1px 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  style={{ margin: 0, fontSize: 18, fontWeight: "bold", color: "#735bc1", cursor: "pointer", userSelect: "none", borderBottom: "2px solid transparent", padding: "1px 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {mapName}
                 </h2>
               )}
@@ -1565,18 +1567,18 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
               {buttonMode === "single" && (
                 <>
                   <button onClick={() => onNew?.(index)}
-                    style={{ padding: "4px 9px", background: "#e0e0e0", color: "#333", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 11, fontWeight: "bold", whiteSpace: "nowrap" }}>
+                    style={{ padding: "5px 10px", background: "#e0e0e0", color: "#333", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 12, fontWeight: "bold", whiteSpace: "nowrap" }}>
                     ✚ New
                   </button>
                   <button onClick={() => onSave?.(index)} disabled={saveDisabled}
-                    style={{ padding: "4px 9px", background: saveDisabled ? TH.btnDisabled : "#e0e0e0", color: saveDisabled ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: saveDisabled ? "not-allowed" : "pointer", fontSize: 11, fontWeight: "bold", whiteSpace: "nowrap" }}>
+                    style={{ padding: "5px 10px", background: saveDisabled ? TH.btnDisabled : "#e0e0e0", color: saveDisabled ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: saveDisabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: "bold", whiteSpace: "nowrap" }}>
                     💾 Save
                   </button>
                 </>
               )}
               {buttonMode === "compareSave" && (
                 <button onClick={() => onSaveCompare?.(index)} disabled={saveDisabled}
-                  style={{ padding: "4px 9px", background: saveDisabled ? TH.btnDisabled : "#e0e0e0", color: saveDisabled ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: saveDisabled ? "not-allowed" : "pointer", fontSize: 11, fontWeight: "bold", whiteSpace: "nowrap" }}>
+                  style={{ padding: "5px 10px", background: saveDisabled ? TH.btnDisabled : "#e0e0e0", color: saveDisabled ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: saveDisabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: "bold", whiteSpace: "nowrap" }}>
                   💾 Save
                 </button>
               )}
@@ -1587,12 +1589,12 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
             </div>
           </div>
 
-          {/* Player */}
-          <div style={{ width: "100%", background: "#000", borderRadius: 4, overflow: "hidden", marginBottom: 0 }}>
+          {/* Player — height is user-resizable via the drag handle below */}
+          <div className="sm-media-wrap" style={{ width: "100%", background: "#000", borderRadius: 4, overflow: "hidden", marginBottom: 0 }}>
 
             {/* YouTube */}
             <div style={{ display: mediaType === "youtube" ? "block" : "none", width: "100%" }}>
-              <div id={ytPlayerId} style={{ width: "100%", aspectRatio: "16/9", maxHeight: 140, overflow: "hidden" }} />
+              <div id={ytPlayerId} style={{ width: "100%", height: mediaHeight, overflow: "hidden" }} />
               {videoLoaded && (
                 <SectionEditBar {...barProps} isPlaying={ytPlaying} onToggle={toggleYTPlayPause} showVolume={false} />
               )}
@@ -1610,17 +1612,17 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                           onLoadedMetadata={() => handleAudioMetadata(localPlayerRef)}
                           onTimeUpdate={() => handleAudioTimeUpdate(localPlayerRef)}
                           onEnded={() => setIsPlaying(false)}
-                          style={{ width: "100%", maxHeight: 140, display: "block" }} />
+                          style={{ width: "100%", maxHeight: mediaHeight, display: "block" }} />
                         <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, color: "#fff", background: "rgba(0,0,0,0.5)", padding: "1px 5px", borderRadius: 3, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none", WebkitUserSelect: "none" }}>{localFileName}</div>
                       </div>
                     ) : (
-                      <div style={{ width: "100%", height: 140, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f5f5f5" }}>
+                      <div style={{ width: "100%", height: mediaHeight, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f5f5f5" }}>
                         <audio ref={localPlayerRef} src={localFileUrl}
                           onLoadedMetadata={() => handleAudioMetadata(localPlayerRef)}
                           onTimeUpdate={() => handleAudioTimeUpdate(localPlayerRef)}
                           onEnded={() => setIsPlaying(false)} />
-                        <div style={{ fontSize: 26, marginBottom: 2 }}>🎵</div>
-                        <div style={{ fontSize: 10, color: TH.controlBarText, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none", WebkitUserSelect: "none" }}>{localFileName}</div>
+                        <div style={{ fontSize: 28, marginBottom: 2 }}>🎵</div>
+                        <div style={{ fontSize: 12, color: TH.controlBarText, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none", WebkitUserSelect: "none" }}>{localFileName}</div>
                       </div>
                     )
                   ) : (
@@ -1630,10 +1632,10 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                       onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) reattachLocalFile(f); }}
                       onClick={() => reattachInputRef.current?.click()}
                       title="Drop the audio file here or click to browse to re-attach it"
-                      style={{ width: "100%", height: 140, boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: dragOver ? "#ece6f7" : "#f5f5f5", border: `2px dashed ${dragOver ? "#735bc1" : "#d0d0d0"}`, cursor: "pointer" }}>
-                      <div style={{ fontSize: 26, marginBottom: 2 }}>🎵</div>
-                      <div style={{ fontSize: 10, color: TH.controlBarText, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{localFileName}</div>
-                      <div style={{ fontSize: 9, color: "#f39c12", marginTop: 4 }}>Drop the audio file here or click to browse</div>
+                      style={{ width: "100%", height: mediaHeight, boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: dragOver ? "#ece6f7" : "#f5f5f5", border: `2px dashed ${dragOver ? "#735bc1" : "#b0b0b0"}`, cursor: "pointer" }}>
+                      <div style={{ fontSize: 28, marginBottom: 2 }}>🎵</div>
+                      <div style={{ fontSize: 12, color: TH.controlBarText, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{localFileName}</div>
+                      <div style={{ fontSize: 11, color: "#f39c12", marginTop: 4 }}>Drop the audio file here or click to browse</div>
                     </div>
                   )}
                   <SectionEditBar {...barProps} isPlaying={isPlaying} onToggle={toggleLocalPlay} showVolume />
@@ -1644,13 +1646,13 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
             {/* AuralPapers */}
             {mediaType === "auralpapers" && activeUrl && (
               <div style={{ background: "#f5f5f5" }}>
-                <div style={{ width: "100%", height: 56, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: "100%", height: Math.min(mediaHeight, 80), display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                   <audio ref={apPlayerRef} src={activeUrl} crossOrigin="anonymous"
                     onLoadedMetadata={() => handleAudioMetadata(apPlayerRef)}
                     onTimeUpdate={() => handleAudioTimeUpdate(apPlayerRef)}
                     onEnded={() => setApPlaying(false)} />
-                  <div style={{ fontSize: 26, marginBottom: 2 }}>🎧</div>
-                  <div style={{ fontSize: 10, color: TH.controlBarText, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
+                  <div style={{ fontSize: 28, marginBottom: 2 }}>🎧</div>
+                  <div style={{ fontSize: 12, color: TH.controlBarText, maxWidth: "90%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
                     {activeUrl.split("/").pop() || "AuralPapers Audio"}
                   </div>
                 </div>
@@ -1674,7 +1676,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
             {/* SoundCloud */}
             {mediaType === "soundcloud" && (
               <div>
-                <iframe id={scIframeId} width="100%" height={140} scrolling="no" frameBorder="no" allow="autoplay"
+                <iframe id={scIframeId} width="100%" height={mediaHeight} scrolling="no" frameBorder="no" allow="autoplay"
                   src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(activeUrl)}&color=%230a5cd6&auto_play=false&show_artwork=true`}
                   style={{ display: "block" }} />
                 {videoLoaded
@@ -1707,6 +1709,29 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
               />
             )}
           </div>
+
+          {/* Draggable bottom border: drag down to increase media display height */}
+          {mediaType && (
+            <div
+              className="sm-resize-handle"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const startH = mediaHeight;
+                const onMove = (ev) => {
+                  const delta = ev.clientY - startY;
+                  setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
+                };
+                const onUp = () => {
+                  document.removeEventListener("pointermove", onMove);
+                  document.removeEventListener("pointerup", onUp);
+                };
+                document.addEventListener("pointermove", onMove);
+                document.addEventListener("pointerup", onUp);
+              }}
+              title="Drag up or down to resize the media player"
+            />
+          )}
 
           {/* Section strip + scroll */}
           <div
@@ -1745,7 +1770,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
               onMouseDown={handleTimelinePanDown}
               onDoubleClick={() => { if (!timelineDragRef.current) { setZoomLevel(1); setZoomOffset(0); } }}
               style={{
-                position: "relative", width: "100%", height: 44,
+                position: "relative", width: "100%", height: 52,
                 cursor: videoLoaded ? "crosshair" : "default",
                 backgroundColor: TH.timelineBg, borderRadius: 3, overflow: "visible",
                 marginTop: 10,
@@ -1787,7 +1812,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                           onBlur={commitLabel}
                           onClick={e => e.stopPropagation()}
                           onDoubleClick={e => e.stopPropagation()}
-                          style={{ position: "absolute", left: 2, top: "50%", transform: "translateY(-50%)", width: "90%", fontSize: 9, background: "rgba(255,255,255,0.8)", color: "#000", border: "1px solid #333", borderRadius: 2, padding: "1px 3px", zIndex: 65 }}
+                          style={{ position: "absolute", left: 2, top: "50%", transform: "translateY(-50%)", width: "90%", fontSize: 11, background: "rgba(255,255,255,0.85)", color: "#000", border: "1px solid #333", borderRadius: 2, padding: "1px 3px", zIndex: 65 }}
                         />
                       ) : (
                         <>
@@ -1795,10 +1820,10 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                             onClick={e => { e.stopPropagation(); if (timelineDragRef.current) return; selectSectionTab(sec, e.ctrlKey || e.metaKey); setLabelValue(sec.label); setEditingLabelId(sec.id); }}
                             onDoubleClick={e => e.stopPropagation()}
                             className="sm-label"
-                            style={{ position: "absolute", left: 3, top: "50%", transform: "translateY(-50%)", fontSize: 9, color: "#fff", fontWeight: "bold", textShadow: "0 0 4px #000", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "80%", padding: "1px 4px", pointerEvents: "all", zIndex: 65 }}
+                            style={{ position: "absolute", left: 3, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#fff", fontWeight: "bold", textShadow: "0 0 4px #000", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "80%", padding: "1px 4px", pointerEvents: "all", zIndex: 65 }}
                           >{sec.label}</span>
                           {samplerKey && (
-                            <span style={{ position: "absolute", right: 3, top: "50%", transform: "translateY(-50%)", fontSize: 9, color: "#000", background: "rgba(243,156,18,0.85)", borderRadius: 2, padding: "0 3px", fontWeight: "bold", pointerEvents: "none", zIndex: 65 }}>{samplerKey}</span>
+                            <span style={{ position: "absolute", right: 3, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#000", background: "rgba(243,156,18,0.85)", borderRadius: 2, padding: "0 3px", fontWeight: "bold", pointerEvents: "none", zIndex: 65 }}>{samplerKey}</span>
                           )}
                         </>
                       )}
@@ -1859,9 +1884,9 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                       }}
                       style={{
                         display: "flex", alignItems: "center", gap: 3,
-                        padding: "3px 6px", fontSize: 9, fontWeight: "bold",
-                        backgroundColor: isActive ? sec.color : "#e8e8e8",
-                        color: isActive ? "#fff" : "#666",
+                        padding: "4px 8px", fontSize: 11, fontWeight: "bold",
+                        backgroundColor: isActive ? sec.color : "#e0e0e0",
+                        color: isActive ? "#fff" : "#555",
                         borderRadius: "3px 3px 0 0", cursor: "pointer",
                         border: isActive ? `2px solid ${sec.color}` : "2px solid #d0d0d0",
                         borderBottom: "none", maxWidth: 120,
@@ -1887,7 +1912,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                               }
                             }}
                             title={isThisPlaying ? `Pause` : `Play from start of "${sec.label}"`}
-                            style={{ fontSize: 8, opacity: 0.8, flexShrink: 0, cursor: "pointer", lineHeight: 1 }}
+                            style={{ fontSize: 10, opacity: 0.8, flexShrink: 0, cursor: "pointer", lineHeight: 1 }}
                           >{isThisPlaying ? "⏸" : "▶"}</span>
                         );
                       })()}
@@ -1906,12 +1931,12 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                           style={{
                             background: "rgba(255,255,255,0.8)", color: "#000",
                             border: "1px solid #333", borderRadius: 2,
-                            fontSize: 9, padding: "0 3px", width: 80, outline: "none",
+                            fontSize: 11, padding: "0 3px", width: 90, outline: "none",
                             fontFamily: "inherit", fontWeight: "bold",
                           }}
                         />
                       ) : (
-                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 80 }}>{sec.label}</span>
+                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90 }}>{sec.label}</span>
                       )}
                     </div>
                   );
