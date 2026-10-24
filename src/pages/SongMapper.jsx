@@ -372,7 +372,8 @@ export default function SongMapper() {
   return (
     <div style={{ display: "flex", background: TH.bg, color: TH.fg, minHeight: "100vh", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", position: "relative" }}>
 
-      {/* Shared left strip (colour picker + undo/redo) */}
+      {/* Shared left strip (colour picker + undo/redo) — hidden in focus mode */}
+      {!focusMode && (
       <div style={{ width: 42, minWidth: 42, flexShrink: 0, background: TH.sidebar, borderRight: `1px solid ${TH.sidebarBorder}`, padding: "10px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, overflow: "visible" }}>
         <button onClick={() => setNoteNewMap(activeIndex)} title="Start a new map" style={{ fontSize: 22, lineHeight: 1, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>🎵</button>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -391,6 +392,7 @@ export default function SongMapper() {
         />
         <div onClick={() => columnRefs.current[activeIndex]?.deselectColours?.()} title="Deselect colours" style={{ flex: 1, minHeight: 20, width: "100%", cursor: "default" }} />
       </div>
+      )}
 
       {/* Columns (stable DOM order; visual order via CSS `order` to avoid reloading iframes on reorder) */}
       <div style={{ display: "flex", flex: 1, minWidth: 0 }}>
@@ -433,8 +435,8 @@ export default function SongMapper() {
         ))}
       </div>
 
-      {/* Single mode: inline divider + reference panel */}
-      {!compareMode && (
+      {/* Single mode: inline divider + reference panel — hidden in focus mode */}
+      {!compareMode && !focusMode && (
         <>
           <ResizableDivider
             onResize={(deltaX) => { if (sidebarCollapsed) return; setRightSidebarWidth(w => Math.max(180, Math.min(700, w - deltaX))); }}
@@ -452,15 +454,15 @@ export default function SongMapper() {
         </>
       )}
 
-      {/* Compare mode: reference slides over the columns (doesn't compress them) */}
-      {compareMode && (
+      {/* Compare mode: reference slides over the columns (doesn't compress them) — hidden in focus mode */}
+      {compareMode && !focusMode && (
         <button
           onClick={() => setRefOverlayVisible(v => !v)}
           title="Show/hide Music Elements Reference"
           style={{ position: "fixed", right: refOverlayVisible ? rightSidebarWidth : 0, top: "50%", transform: "translateY(-50%)", width: 18, height: 48, background: TH.sidebar, border: `1px solid ${TH.sidebarBorder}`, borderRight: "none", borderRadius: "4px 0 0 4px", cursor: "pointer", fontSize: 10, color: TH.label, zIndex: 600 }}
         >{refOverlayVisible ? "▶" : "◀"}</button>
       )}
-      {compareMode && refOverlayVisible && (
+      {compareMode && !focusMode && refOverlayVisible && (
         <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: rightSidebarWidth, background: TH.rightSidebar, boxShadow: "-6px 0 18px rgba(0,0,0,0.18)", zIndex: 550, display: "flex", flexDirection: "column" }}>
           <div
             onPointerDown={(e) => {
