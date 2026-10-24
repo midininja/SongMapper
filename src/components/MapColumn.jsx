@@ -27,6 +27,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
   const reattachInputRef = useRef(null);
+  const replaceInputRef = useRef(null);
   const localPlayerRef = useRef(null);
   const apPlayerRef = useRef(null);
   const histRef = useRef([]);
@@ -87,6 +88,9 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const [editingTabId, setEditingTabId] = useState(null);
   const [subFocus, setSubFocus] = useState(null); // focused subsection strip: { sectionId, rowId }
   const [confirmSectionDelete, setConfirmSectionDelete] = useState(false);
+  const [pendingReplace, setPendingReplace] = useState(null);
+  const [showReplacePanel, setShowReplacePanel] = useState(false);
+  const [replaceUrlInput, setReplaceUrlInput] = useState("");
   const [subSelection, setSubSelection] = useState(null); // reported by notes panel: { sectionId, rowId, ids }
   const [subLoop, setSubLoop] = useState(null); // active subsection loop: { sectionId, rowId, ids }
   const [tabLabelValue, setTabLabelValue] = useState("");
@@ -489,7 +493,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
       scWidgetRef.current = widget;
       widget.bind(window.SC.Widget.Events.READY, () => {
         widget.getDuration(ms => {
-          if (ms && ms > 0) { const d = ms / 1000; setDuration(d); setVideoLoaded(true); if (sectionsRef.current.length === 0) initSections(d); }
+          if (ms && ms > 0) { const d = ms / 1000; setDuration(d); setVideoLoaded(true); if (sectionsRef.current.length === 0) initSections(d); else if (mediaEnd > d) setMediaEnd(d); }
         });
         widget.getCurrentSound(sound => { if (sound && sound.title) setMapName(sound.title); });
       });
@@ -618,7 +622,11 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   function handleAudioMetadata(elRef) {
     const el = elRef.current; if (!el) return;
     const d = el.duration;
-    if (d && isFinite(d) && d > 0) { setDuration(d); setVideoLoaded(true); if (sectionsRef.current.length === 0) initSections(d); }
+    if (d && isFinite(d) && d > 0) {
+      setDuration(d); setVideoLoaded(true);
+      if (sectionsRef.current.length === 0) initSections(d);
+      else if (mediaEnd > d) setMediaEnd(d);
+    }
   }
   function handleAudioTimeUpdate(elRef) { if (elRef.current) setCurrentTime(elRef.current.currentTime); }
 
@@ -686,6 +694,65 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     setLocalFileName(file.name);
     const loadId = ++waveformLoadIdRef.current;
     computePeaks(file).then(p => { if (waveformLoadIdRef.current === loadId) setWaveformPeaks(p); });
+  }
+
+  // Swap the media source (URL or file) while keeping all sections, notes,
+  // palette, trim points and history intact.
+  function replaceMedia(type, payload) {
+    setPendingReplace(null);
+    stopTracking();
+    setApPlaying(false); setIsPlaying(false); setScPlaying(false);
+    setVideoLoaded(false); setCurrentTime(0);
+    setSubLoop(null); setSubSelection(null); setSubFocus(null);
+    setLoopSectionId(null); setMultiSelectedIds([]);
+    samplerRef.current = { active: false, endTime: 0 };
+    setZoomLevel(1); setZoomOffset(0);
+    scWidgetRef.current = null;
+    setEmbedDurationInput("");
+    const loadId = ++waveformLoadIdRef.current;
+
+    if (type === "youtube") {
+      const { id } = payload;
+      setMediaType("youtube"); setLocalFileUrl(null); setActiveUrl(payload.url);
+      pendingYtCueRef.current = true;
+      if (ytReadyRef.current && playerRef.current?.cueVideoById) playerRef.current.cueVideoById(id);
+      else pendingYtIdRef.current = id;
+      let attempts = 0;
+      const wait = setInterval(() => {
+        attempts++;
+        if (!playerRef.current?.getDuration) { if (attempts > 60) clearInterval(wait); return; }
+        const d = playerRef.current.getDuration();
+        if (d && d > 0) {
+          setDuration(d); setVideoLoaded(true);
+          if (mediaEnd > d) setMediaEnd(d);
+          clearInterval(wait);
+        }
+        if (attempts > 60) clearInterval(wait);
+      }, 500);
+    } else if (type === "soundcloud") {
+      setMediaType("soundcloud"); setLocalFileUrl(null); setActiveUrl(payload.url);
+    } else if (type === "auralpapers") {
+      setMediaType("auralpapers"); setLocalFileUrl(null); setActiveUrl(payload.url);
+      computePeaks(payload.url).then(p => { if (waveformLoadIdRef.current === loadId) setWaveformPeaks(p); });
+    } else if (type === "local") {
+      const { file } = payload;
+      setLocalFileUrl(URL.createObjectURL(file)); setLocalFileName(file.name);
+      setMediaType("local"); setActiveUrl("");
+      computePeaks(file).then(p => { if (waveformLoadIdRef.current === loadId) setWaveformPeaks(p); });
+    }
+    setDirty(true);
+  }
+
+  function requestReplace(type, payload) {
+    setPendingReplace({ type, payload });
+  }
+
+  function loadReplaceFromUrl(url) {
+    url = url.trim(); if (!url) return;
+    if (isYouTubeUrl(url)) requestReplace("youtube", { id: getYouTubeId(url), url });
+    else if (isSoundCloudUrl(url)) requestReplace("soundcloud", { url });
+    else if (isAuralPapersUrl(url)) requestReplace("auralpapers", { url });
+    else alert("Please enter a valid YouTube, SoundCloud, or AuralPapers URL.");
   }
 
   function handleDrop(e) {
@@ -1491,6 +1558,17 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
         />
       )}
 
+      {pendingReplace && (
+        <ConfirmModal
+          message="Replace the media for this map? All sections, notes and colours will be kept."
+          onConfirm={() => replaceMedia(pendingReplace.type, pendingReplace.payload)}
+          onCancel={() => setPendingReplace(null)}
+          confirmLabel="Replace Media"
+          confirmColor="#735bc1"
+          cancelLabel="Cancel"
+        />
+      )}
+
       {pendingUnsaved && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "#ffffff", border: `1px solid ${TH.sidebarBorder}`, borderRadius: 8, padding: "28px 32px", maxWidth: 380, textAlign: "center", color: TH.fg, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
@@ -1587,6 +1665,11 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                     style={{ padding: "5px 10px", background: "#e0e0e0", color: "#333", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 12, fontWeight: "bold", whiteSpace: "nowrap" }}>
                     ✚ New
                   </button>
+                  <button onClick={() => setShowReplacePanel(v => !v)} disabled={!videoLoaded}
+                    title="Replace the media (URL or file) while keeping all sections, notes and colours"
+                    style={{ padding: "5px 10px", background: !videoLoaded ? TH.btnDisabled : "#e0e0e0", color: !videoLoaded ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: !videoLoaded ? "not-allowed" : "pointer", fontSize: 12, fontWeight: "bold", whiteSpace: "nowrap" }}>
+                    ⇄ Replace
+                  </button>
                   <button onClick={() => onSave?.(index)} disabled={saveDisabled}
                     style={{ padding: "5px 10px", background: saveDisabled ? TH.btnDisabled : "#e0e0e0", color: saveDisabled ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: saveDisabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: "bold", whiteSpace: "nowrap" }}>
                     💾 Save
@@ -1603,8 +1686,39 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                 onChange={e => { const f = e.target.files[0]; if (f) { if (/\.json$/i.test(f.name)) loadMapFile(f); else requestLoad("local", { file: f }); } e.target.value = ""; }} />
               <input ref={reattachInputRef} type="file" accept="audio/*,video/*" style={{ display: "none" }}
                 onChange={e => { const f = e.target.files[0]; if (f) reattachLocalFile(f); e.target.value = ""; }} />
+              <input ref={replaceInputRef} type="file" accept="audio/*,video/*,.mp3,.wav,.aiff,.aif,.ogg,.mp4,.mov,.mkv,.webm" style={{ display: "none" }}
+                onChange={e => { const f = e.target.files[0]; if (f) requestReplace("local", { file: f }); e.target.value = ""; }} />
             </div>
           </div>
+
+          {/* Replace-media panel — URL or file swap that preserves all map data */}
+          {showReplacePanel && videoLoaded && (
+            <div style={{ marginBottom: 8, padding: "10px 12px", background: TH.sidebar, border: `1px solid ${TH.sidebarBorder}`, borderRadius: 6, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: "bold", color: TH.fg }}>Replace Media</div>
+              <div style={{ fontSize: 11, color: TH.label, lineHeight: 1.4 }}>Sections, notes and colours will be kept. Only the media source is swapped.</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <input
+                  value={replaceUrlInput}
+                  onChange={e => setReplaceUrlInput(e.target.value)}
+                  placeholder="YouTube / SoundCloud / AuralPapers URL"
+                  onKeyDown={e => { if (e.key === "Enter") { loadReplaceFromUrl(replaceUrlInput); setReplaceUrlInput(""); setShowReplacePanel(false); } }}
+                  style={{ flex: 1, minWidth: 120, padding: "5px 8px", boxSizing: "border-box", background: TH.inputBg, color: TH.inputFg, border: `1px solid ${TH.inputBorder}`, borderRadius: 4, fontSize: 12 }}
+                />
+                <button
+                  onClick={() => { loadReplaceFromUrl(replaceUrlInput); setReplaceUrlInput(""); setShowReplacePanel(false); }}
+                  style={{ padding: "5px 12px", background: "#735bc1", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: "bold", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0 }}
+                >Load URL</button>
+                <button
+                  onClick={() => replaceInputRef.current?.click()}
+                  style={{ padding: "5px 12px", background: "#e0e0e0", color: "#333", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: "bold", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0 }}
+                >Browse File</button>
+                <button
+                  onClick={() => setShowReplacePanel(false)}
+                  style={{ padding: "5px 10px", background: "transparent", color: TH.label, border: `1px solid ${TH.inputBorder}`, borderRadius: 4, cursor: "pointer", fontSize: 12, flexShrink: 0 }}
+                >Cancel</button>
+              </div>
+            </div>
+          )}
 
           {/* Player — height is user-resizable via the drag handle below */}
           <div className="sm-media-wrap" style={{ width: "100%", background: "#000", borderRadius: 4, overflow: "hidden", marginBottom: 0, flex: focusMode ? 1 : undefined, minHeight: focusMode ? 0 : undefined, display: focusMode ? "flex" : undefined, flexDirection: focusMode ? "column" : undefined }}>
