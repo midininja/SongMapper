@@ -63,6 +63,12 @@ export default function OverflowToolbar({ barStyle, children }) {
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
+  // Close the floating panel after a click inside it (e.g. pressing the
+  // full-screen button) so it doesn't linger on top of the media.
+  function onPanelClick(e) {
+    if (e.target.closest("button")) setOpen(false);
+  }
+
   function closeFloat() { setOpen(false); }
   function toggleFloat() {
     if (open) { setOpen(false); return; }
@@ -97,6 +103,7 @@ export default function OverflowToolbar({ barStyle, children }) {
       {open && hasOverflow && floatRect && createPortal(
         <div
           ref={panelRef}
+          onClick={onPanelClick}
           style={{ position: "fixed", left: floatRect.left, top: floatRect.top, background: "#fff", border: `1px solid ${TH.controlBarBorder}`, borderRadius: 6, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", padding: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", zIndex: 9999, minWidth: 180, maxWidth: 360 }}
         >
           {items.slice(overflowStart).map((child, i) => (
