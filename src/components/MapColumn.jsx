@@ -1763,8 +1763,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
               onMouseDown={handleTimelinePanDown}
               onDoubleClick={() => { if (!timelineDragRef.current) { setZoomLevel(1); setZoomOffset(0); } }}
               style={{
-                position: "relative", width: "100%",
-                height: focusMode ? "clamp(60px, 12vh, 120px)" : 52,
+                position: "relative", width: "100%", height: 52,
                 cursor: videoLoaded ? "crosshair" : "default",
                 backgroundColor: TH.timelineBg, borderRadius: 3, overflow: "visible",
                 marginTop: 10,
