@@ -10,6 +10,7 @@ export default function SectionEditBar({
   zoomLevel, applyZoom, duration, playbackRate, setPlaybackRate, speedActive, setSpeedActive,
   hasSelection, onDeselect, showDeselect,
   volume, onVolumeChange,
+  focusMode, onToggleFocus,
 }) {
   const items = [
     <button key="play" onPointerDown={e => { e.preventDefault(); onToggle(); }}
@@ -38,6 +39,22 @@ export default function SectionEditBar({
 
   items.push(
     ...ZoomControlItems({ zoomLevel, applyZoom, currentTime, duration, playbackRate, setPlaybackRate, speedActive, setSpeedActive, hasSelection, onDeselect, showDeselect })
+  );
+
+  items.push(
+    <button
+      key="focus"
+      onPointerDown={e => e.preventDefault()}
+      onClick={onToggleFocus}
+      title={focusMode ? "Exit full-screen mode" : "Expand to full-screen (collapses other columns & notes)"}
+      style={{
+        background: focusMode ? "#0a5cd6" : "#e4e4e4",
+        color: focusMode ? "#fff" : "#333",
+        border: `1px solid ${focusMode ? "#0a5cd6" : "#bbb"}`,
+        borderRadius: 4, padding: "3px 8px", fontSize: 13,
+        cursor: "pointer", height: 24, flexShrink: 0, lineHeight: 1, fontWeight: "bold",
+      }}
+    >{focusMode ? "⇱" : "⇲"}</button>
   );
 
   return (

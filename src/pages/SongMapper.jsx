@@ -37,6 +37,13 @@ export default function SongMapper() {
   const loadTarget = useRef(null);
   const pendingLoads = useRef({});
 
+  // Focus mode: one column expands to full-screen for isolated section looping.
+  const [focusColId, setFocusColId] = useState(null);
+  const focusMode = focusColId !== null;
+  const toggleFocus = useCallback((colId) => {
+    setFocusColId(prev => (prev === colId ? null : colId));
+  }, []);
+
   const compareMode = mapCount > 1;
 
   // Multi-column loop chain: every column with an active loop AND selected
@@ -419,6 +426,9 @@ export default function SongMapper() {
             collapsed={collapsedCols.includes(colId)}
             onToggleCollapse={toggleCollapse}
             onDeselectAll={() => columnRefs.current.forEach(c => c?.deselectAll?.())}
+            focusMode={focusMode && focusColId === colId}
+            onToggleFocus={() => toggleFocus(colId)}
+            hidden={focusMode && focusColId !== colId}
           />
         ))}
       </div>

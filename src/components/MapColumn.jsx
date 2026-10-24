@@ -16,7 +16,7 @@ import CollapsedColumnStrip from "@/components/CollapsedColumnStrip";
 
 const YT_INIT_QUEUE = [];
 const PENCIL_CURSOR = "url(data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M11 1l4 4-8 8H3v-4z' fill='%23333' stroke='%23fff' stroke-width='1'/></svg>) 2 14, text";
-const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active = true, selected = false, preview = false, compareMode = false, grab = null, buttonMode = "single", saveDisabled = false, onState, onSelect, onHover, onNew, onLoadCompareMap, onSave, onSaveCompare, onUndo, onRedo, onHistoryPush, onHistoryReset, onDeselectAll, loopChainNext = null, onLoopHandoff, samplerOffset = 0, onSamplerKey, collapsed = false, onToggleCollapse, alignTabHeight = 0 }, ref) {
+const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active = true, selected = false, preview = false, compareMode = false, grab = null, buttonMode = "single", saveDisabled = false, onState, onSelect, onHover, onNew, onLoadCompareMap, onSave, onSaveCompare, onUndo, onRedo, onHistoryPush, onHistoryReset, onDeselectAll, loopChainNext = null, onLoopHandoff, samplerOffset = 0, onSamplerKey, collapsed = false, onToggleCollapse, alignTabHeight = 0, focusMode = false, onToggleFocus, hidden = false }, ref) {
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const playerRef = useRef(null);
   const timelineRef = useRef(null);
@@ -360,18 +360,20 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     };
   }, [ytPlayerId]);
 
-  // Resize the YouTube iframe when mediaHeight changes — the YT API creates
-  // the iframe with fixed pixel dimensions that don't respond to container CSS.
+  // Resize the YouTube iframe when mediaHeight or focusMode changes — the YT API
+  // creates the iframe with fixed pixel dimensions that don't respond to container CSS.
   useEffect(() => {
     if (mediaType !== "youtube") return;
     const iframe = document.getElementById(ytPlayerId)?.querySelector("iframe") || document.getElementById(ytPlayerId);
+    const targetH = focusMode ? "100%" : `${mediaHeight}px`;
     if (iframe) {
-      iframe.style.height = `${mediaHeight}px`;
+      iframe.style.height = targetH;
       iframe.style.width = "100%";
-    }    if (playerRef.current?.setSize) {
+    }
+    if (playerRef.current?.setSize && !focusMode) {
       try { playerRef.current.setSize(640, mediaHeight); } catch {}
     }
-  }, [mediaHeight, mediaType, ytPlayerId]);
+  }, [mediaHeight, mediaType, ytPlayerId, focusMode]);
 
   function initYTPlayer(playerId) {
     if (playerRef.current && typeof playerRef.current.getPlayerState === "function") return;
@@ -1450,6 +1452,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     zoomLevel, applyZoom, duration, playbackRate, setPlaybackRate, speedActive, setSpeedActive,
     hasSelection, onDeselect: deselect, showDeselect: mediaType !== "local",
     volume, onVolumeChange: handleVolumeChange,
+    focusMode, onToggleFocus,
   };
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -1532,7 +1535,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
         onDragOver={(e) => { if (grab) { e.preventDefault(); grab.onGrabOver(index, e); } }}
         onDrop={(e) => { if (grab) { e.preventDefault(); grab.onGrabDrop(index, e); } }}
         className="sm-col"
-        style={{ display: collapsed ? "none" : "flex", flex: 1, minWidth: 0, order, color: TH.fg, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", border: selected ? "2px solid #735bc1" : preview ? "2px dashed #735bc1" : "2px solid transparent", boxSizing: "border-box", position: "relative" }}>
+        style={{ display: (collapsed || hidden) ? "none" : "flex", flex: 1, minWidth: focusMode ? undefined : 0, order, color: TH.fg, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", border: selected ? "2px solid #735bc1" : preview ? "2px dashed #735bc1" : "2px solid transparent", boxSizing: "border-box", position: "relative" }}>
 
         {grab && grab.dropTargetId === index && (
           <div style={{ position: "absolute", top: 0, bottom: 0, left: grab.dropSide === "left" ? 0 : undefined, right: grab.dropSide === "right" ? 0 : undefined, width: 3, background: "#735bc1", zIndex: 700 }} />
@@ -1603,32 +1606,11 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
           </div>
 
           {/* Player — height is user-resizable via the drag handle below */}
-          <div className="sm-media-wrap" style={{ width: "100%", background: "#000", borderRadius: 4, overflow: "hidden", marginBottom: 0 }}>
+          <div className="sm-media-wrap" style={{ width: "100%", background: "#000", borderRadius: 4, overflow: "hidden", marginBottom: 0, flex: focusMode ? 1 : undefined, minHeight: focusMode ? 0 : undefined, display: focusMode ? "flex" : undefined, flexDirection: focusMode ? "column" : undefined }}>
 
             {/* YouTube */}
-            <div style={{ display: mediaType === "youtube" ? "block" : "none", width: "100%" }}>
-              <div id={ytPlayerId} style={{ width: "100%", height: mediaHeight, overflow: "hidden" }} />
-              {mediaType && (
-                <div
-                  className="sm-resize-handle"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    const startY = e.clientY;
-                    const startH = mediaHeight;
-                    const onMove = (ev) => {
-                      const delta = ev.clientY - startY;
-                      setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
-                    };
-                    const onUp = () => {
-                      document.removeEventListener("pointermove", onMove);
-                      document.removeEventListener("pointerup", onUp);
-                    };
-                    document.addEventListener("pointermove", onMove);
-                    document.addEventListener("pointerup", onUp);
-                  }}
-                  title="Drag up or down to resize the media player"
-                />
-              )}
+            <div style={{ display: mediaType === "youtube" ? "flex" : "none", width: "100%", flex: focusMode ? 1 : undefined, minHeight: focusMode ? 0 : undefined, flexDirection: "column" }}>
+              <div id={ytPlayerId} style={{ width: "100%", height: focusMode ? "100%" : mediaHeight, overflow: "hidden", flex: focusMode ? 1 : undefined }} />
               {videoLoaded && (
                 <SectionEditBar {...barProps} isPlaying={ytPlaying} onToggle={toggleYTPlayPause} showVolume={false} />
               )}
@@ -1646,11 +1628,11 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                           onLoadedMetadata={() => handleAudioMetadata(localPlayerRef)}
                           onTimeUpdate={() => handleAudioTimeUpdate(localPlayerRef)}
                           onEnded={() => setIsPlaying(false)}
-                          style={{ width: "100%", height: mediaHeight, objectFit: "contain", display: "block" }} />
+                          style={{ width: "100%", height: focusMode ? "100%" : mediaHeight, objectFit: "contain", display: "block", flex: focusMode ? 1 : undefined }} />
                         <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, color: "#fff", background: "rgba(0,0,0,0.5)", padding: "1px 5px", borderRadius: 3, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none", WebkitUserSelect: "none" }}>{localFileName}</div>
                       </div>
                     ) : (
-                      <div style={{ width: "100%", height: mediaHeight, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f5f5f5" }}>
+                      <div style={{ width: "100%", height: focusMode ? "100%" : mediaHeight, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f5f5f5", flex: focusMode ? 1 : undefined }}>
                         <audio ref={localPlayerRef} src={localFileUrl}
                           onLoadedMetadata={() => handleAudioMetadata(localPlayerRef)}
                           onTimeUpdate={() => handleAudioTimeUpdate(localPlayerRef)}
@@ -1672,27 +1654,6 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                       <div style={{ fontSize: 11, color: "#f39c12", marginTop: 4 }}>Drop the audio file here or click to browse</div>
                     </div>
                   )}
-                  {mediaType && (
-                    <div
-                      className="sm-resize-handle"
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        const startY = e.clientY;
-                        const startH = mediaHeight;
-                        const onMove = (ev) => {
-                          const delta = ev.clientY - startY;
-                          setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
-                        };
-                        const onUp = () => {
-                          document.removeEventListener("pointermove", onMove);
-                          document.removeEventListener("pointerup", onUp);
-                        };
-                        document.addEventListener("pointermove", onMove);
-                        document.addEventListener("pointerup", onUp);
-                      }}
-                      title="Drag up or down to resize the media player"
-                    />
-                  )}
                   <SectionEditBar {...barProps} isPlaying={isPlaying} onToggle={toggleLocalPlay} showVolume />
                 </div>
               );
@@ -1711,27 +1672,6 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                     {activeUrl.split("/").pop() || "AuralPapers Audio"}
                   </div>
                 </div>
-                {mediaType && (
-                  <div
-                    className="sm-resize-handle"
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      const startY = e.clientY;
-                      const startH = mediaHeight;
-                      const onMove = (ev) => {
-                        const delta = ev.clientY - startY;
-                        setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
-                      };
-                      const onUp = () => {
-                        document.removeEventListener("pointermove", onMove);
-                        document.removeEventListener("pointerup", onUp);
-                      };
-                      document.addEventListener("pointermove", onMove);
-                      document.addEventListener("pointerup", onUp);
-                    }}
-                    title="Drag up or down to resize the media player"
-                  />
-                )}
                 {videoLoaded
                   ? <SectionEditBar {...barProps} isPlaying={apPlaying} onToggle={toggleApPlay} showVolume />
                   : (
@@ -1752,30 +1692,9 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
             {/* SoundCloud */}
             {mediaType === "soundcloud" && (
               <div>
-                <iframe id={scIframeId} width="100%" height={mediaHeight} scrolling="no" frameBorder="no" allow="autoplay"
+                <iframe id={scIframeId} width="100%" height={focusMode ? "100%" : mediaHeight} scrolling="no" frameBorder="no" allow="autoplay"
                   src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(activeUrl)}&color=%230a5cd6&auto_play=false&show_artwork=true`}
-                  style={{ display: "block" }} />
-                {mediaType && (
-                  <div
-                    className="sm-resize-handle"
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      const startY = e.clientY;
-                      const startH = mediaHeight;
-                      const onMove = (ev) => {
-                        const delta = ev.clientY - startY;
-                        setMediaHeight(Math.max(80, Math.min(600, startH + delta)));
-                      };
-                      const onUp = () => {
-                        document.removeEventListener("pointermove", onMove);
-                        document.removeEventListener("pointerup", onUp);
-                      };
-                      document.addEventListener("pointermove", onMove);
-                      document.addEventListener("pointerup", onUp);
-                    }}
-                    title="Drag up or down to resize the media player"
-                  />
-                )}
+                  style={{ display: "block", flex: focusMode ? 1 : undefined }} />
                 {videoLoaded
                   ? <SectionEditBar {...barProps} isPlaying={scPlaying} onToggle={toggleScPlay} showVolume={false} />
                   : (
@@ -1935,8 +1854,8 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
             {/* Pan via horizontal wheel/trackpad when zoomed — pinch to zoom back out (no slider) */}
           </div>
 
-          {/* Section Notes Tabs */}
-          {videoLoaded && sorted.length > 0 && (
+          {/* Section Notes Tabs — hidden in focus mode */}
+          {videoLoaded && sorted.length > 0 && !focusMode && (
             <div className="sm-notes" style={{ width: "100%" }}>
               <div onClick={e => { if (e.target === e.currentTarget) onDeselectAll?.(); }} style={{ height: 10 + (compareMode ? Math.max(0, (alignTabHeight || 0) - tabHeight) : 0), cursor: "default" }} />
               <div ref={tabsRef} onClick={e => { if (e.target === e.currentTarget) onDeselectAll?.(); }} style={{ display: "flex", gap: 2, marginBottom: 0, flexWrap: "wrap" }}>
