@@ -1278,6 +1278,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   useEffect(() => { setColourMultiSelect([]); }, [palette]);
 
   // Measure the section-tabs row height so compare-mode columns can align their notes panels.
+  // Re-run when focusMode toggles so the observer re-attaches after the tabs remount.
   useEffect(() => {
     const el = tabsRef.current;
     if (!el) return;
@@ -1286,7 +1287,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [videoLoaded, sections.length]);
+  }, [videoLoaded, sections.length, focusMode]);
 
   // Report colour + selection state up to the container (shared strip / cross-column recolour)
   useEffect(() => {
