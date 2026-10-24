@@ -28,6 +28,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const jsonInputRef = useRef(null);
   const reattachInputRef = useRef(null);
   const replaceInputRef = useRef(null);
+  const replaceOldDurationRef = useRef(null);
   const localPlayerRef = useRef(null);
   const apPlayerRef = useRef(null);
   const histRef = useRef([]);
@@ -493,7 +494,12 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
       scWidgetRef.current = widget;
       widget.bind(window.SC.Widget.Events.READY, () => {
         widget.getDuration(ms => {
-          if (ms && ms > 0) { const d = ms / 1000; setDuration(d); setVideoLoaded(true); if (sectionsRef.current.length === 0) initSections(d); else if (mediaEnd > d) setMediaEnd(d); }
+          if (ms && ms > 0) {
+            const d = ms / 1000;
+            setDuration(d); setVideoLoaded(true);
+            if (sectionsRef.current.length === 0) initSections(d);
+            else rescaleSectionsToDuration(d);
+          }
         });
         widget.getCurrentSound(sound => { if (sound && sound.title) setMapName(sound.title); });
       });
@@ -625,7 +631,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     if (d && isFinite(d) && d > 0) {
       setDuration(d); setVideoLoaded(true);
       if (sectionsRef.current.length === 0) initSections(d);
-      else if (mediaEnd > d) setMediaEnd(d);
+      else rescaleSectionsToDuration(d);
     }
   }
   function handleAudioTimeUpdate(elRef) { if (elRef.current) setCurrentTime(elRef.current.currentTime); }
@@ -696,11 +702,69 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     computePeaks(file).then(p => { if (waveformLoadIdRef.current === loadId) setWaveformPeaks(p); });
   }
 
+  // Proportionally rescale all section times, subsection times, trim points
+  // and note-row subsection positions to a new media duration.
+  function rescaleSectionsToDuration(newDuration) {
+    const oldDuration = replaceOldDurationRef.current;
+    if (!oldDuration || oldDuration <= 0 || newDuration <= 0) return;
+    if (Math.abs(oldDuration - newDuration) < 0.01) return;
+    const ratio = newDuration / oldDuration;
+    replaceOldDurationRef.current = null;
+
+    const scaledSections = sectionsRef.current.map(sec => ({
+      ...sec,
+      time: Math.round(sec.time * ratio * 1000) / 1000,
+      endTime: Math.round(sec.endTime * ratio * 1000) / 1000,
+    }));
+    // Rescale subsection times inside note rows, and sub-note keys encode
+    // only IDs (not timestamps) so no key remapping is needed.
+    const scaledNotes = { ...notes };
+    Object.keys(scaledNotes).forEach(key => {
+      if (key.includes("#")) return; // sub-note entries (sectionId#rowId#subId) — no time
+      const rows = scaledNotes[key];
+      if (!Array.isArray(rows)) return;
+      scaledNotes[key] = rows.map(r => ({
+        ...r,
+        subsections: (r.subsections || []).map(sub => ({
+          ...sub,
+          time: Math.round(sub.time * ratio * 1000) / 1000,
+        })),
+      }));
+    });
+
+    setSections(scaledSections);
+    setNotes(scaledNotes);
+    // Update history snapshots so undo/redo stay in the new time scale.
+    histRef.current = histRef.current.map(snap => ({
+      ...snap,
+      sections: snap.sections.map(sec => ({
+        ...sec,
+        time: Math.round(sec.time * ratio * 1000) / 1000,
+        endTime: Math.round(sec.endTime * ratio * 1000) / 1000,
+      })),
+      notes: Object.fromEntries(Object.entries(snap.notes).map(([k, v]) => {
+        if (k.includes("#")) return [k, v];
+        if (!Array.isArray(v)) return [k, v];
+        return [k, v.map(r => ({
+          ...r,
+          subsections: (r.subsections || []).map(sub => ({
+            ...sub,
+            time: Math.round(sub.time * ratio * 1000) / 1000,
+          })),
+        }))];
+      })),
+    }));
+    setMediaStart(Math.round(mediaStart * ratio * 1000) / 1000);
+    setMediaEnd(Math.round(mediaEnd * ratio * 1000) / 1000);
+    setDirty(true);
+  }
+
   // Swap the media source (URL or file) while keeping all sections, notes,
   // palette, trim points and history intact.
   function replaceMedia(type, payload) {
     setPendingReplace(null);
     stopTracking();
+    replaceOldDurationRef.current = duration;
     setApPlaying(false); setIsPlaying(false); setScPlaying(false);
     setVideoLoaded(false); setCurrentTime(0);
     setSubLoop(null); setSubSelection(null); setSubFocus(null);
@@ -724,7 +788,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
         const d = playerRef.current.getDuration();
         if (d && d > 0) {
           setDuration(d); setVideoLoaded(true);
-          if (mediaEnd > d) setMediaEnd(d);
+          rescaleSectionsToDuration(d);
           clearInterval(wait);
         }
         if (attempts > 60) clearInterval(wait);
