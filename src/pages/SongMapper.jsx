@@ -67,7 +67,7 @@ export default function SongMapper() {
   const samplerKeys = [];
   samplerCols.forEach(id => {
     const n = (colStates[id]?.multiSelectedIds || []).length;
-    for (let i = 0; i < n && samplerKeys.length < 15; i++) samplerKeys.push({ colId: id, localIdx: i });
+    for (let i = 0; i < n && samplerKeys.length < 16; i++) samplerKeys.push({ colId: id, localIdx: i });
   });
   const samplerOffsetFor = (colId) => {
     const i = samplerKeys.findIndex(a => a.colId === colId);
