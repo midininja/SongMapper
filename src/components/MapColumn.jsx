@@ -103,6 +103,8 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const [mediaStart, setMediaStart] = useState(0);
   const [mediaEnd, setMediaEnd] = useState(0);
   const [mediaHeight, setMediaHeight] = useState(160); // draggable bottom border
+  const [colourClipboard, setColourClipboard] = useState(null); // hex string for section colour copy/paste
+  const [sectionCtxMenu, setSectionCtxMenu] = useState(null); // { x, y, sectionId }
 
   // Keep a ref of sections so async media callbacks can tell fresh loads apart from
   // saved-map loads / re-attached files (which must NOT re-init sections).
@@ -1405,6 +1407,31 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     if (ids.length > 0) pushHistory(sections.map(s => ids.includes(s.id) ? { ...s, color: hex } : s));
   }
 
+  function handleSectionContextMenu(e, sec) {
+    e.preventDefault();
+    e.stopPropagation();
+    // When right-clicking a section that's part of a multi-selection, keep the
+    // selection and use the right-clicked section's colour as the copy source.
+    // Otherwise select just this section.
+    if (!multiSelectedIds.includes(sec.id)) {
+      setSelectedId(sec.id);
+      setMultiSelectedIds([sec.id]);
+    }
+    setSectionCtxMenu({ x: e.clientX, y: e.clientY, sectionId: sec.id });
+  }
+  function copySectionColour() {
+    if (!sectionCtxMenu) return;
+    const sec = sections.find(s => s.id === sectionCtxMenu.sectionId);
+    if (sec) setColourClipboard(sec.color);
+    setSectionCtxMenu(null);
+  }
+  function pasteSectionColour() {
+    if (!colourClipboard) return;
+    const ids = multiSelectedIds.length > 0 ? [...multiSelectedIds] : (sectionCtxMenu ? [sectionCtxMenu.sectionId] : []);
+    if (ids.length > 0) pushHistory(sections.map(s => ids.includes(s.id) ? { ...s, color: colourClipboard } : s));
+    setSectionCtxMenu(null);
+  }
+
   // Colour multi-select is invalidated whenever the palette changes (add/remove/reorder/recolour)
   useEffect(() => { setColourMultiSelect([]); }, [palette]);
 
@@ -1658,6 +1685,33 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
           audioElRef={mediaType === "local" ? localPlayerRef : apPlayerRef}
           onClose={() => setShowDownloader(false)}
         />
+      )}
+
+      {sectionCtxMenu && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setSectionCtxMenu(null)} onContextMenu={e => { e.preventDefault(); setSectionCtxMenu(null); }} />
+          <div
+            style={{
+              position: "fixed", left: sectionCtxMenu.x, top: sectionCtxMenu.y, zIndex: 8001,
+              padding: 4, background: "#fff", borderRadius: 5,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.25)", border: "1px solid #d0d0d0",
+              display: "flex", flexDirection: "column", gap: 2,
+            }}
+          >
+            <button
+              onClick={copySectionColour}
+              title="Copy this section's colour"
+              style={{ background: "#e0e0e0", color: "#333", border: "none", borderRadius: 3, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap", textAlign: "left" }}
+            >Copy colour</button>
+            {colourClipboard && (
+              <button
+                onClick={pasteSectionColour}
+                title={`Paste colour (${colourClipboard}) to ${multiSelectedIds.length > 1 ? multiSelectedIds.length + ' selected sections' : 'selected section'}`}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "#e0e0e0", color: "#333", border: "none", borderRadius: 3, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap", textAlign: "left" }}
+              >Paste colour <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: colourClipboard, border: "1px solid #999" }} /></button>
+            )}
+          </div>
+        </>
       )}
 
       {editingBoundarySection && (
@@ -1966,6 +2020,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                   <div key={sec.id}>
                     <div
                       onClick={e => { e.stopPropagation(); if (timelineDragRef.current) return; selectSection(sec, e.shiftKey, e.ctrlKey || e.metaKey); }}
+                      onContextMenu={e => handleSectionContextMenu(e, sec)}
                       title={`${sec.label}${samplerKey ? ` [${samplerKey}]` : ""}`}
                       style={{
                         position: "absolute", top: 0, height: "100%",
