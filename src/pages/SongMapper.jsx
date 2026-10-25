@@ -15,6 +15,7 @@ export default function SongMapper() {
   const [selectedCols, setSelectedCols] = useState([0]);
   const [colourScope, setColourScope] = useState("all");
   const [collapsedCols, setCollapsedCols] = useState([]);
+  const [colourClipboard, setColourClipboard] = useState(null); // hex string shared across columns for section colour copy/paste
   const toggleCollapse = (colId) => setCollapsedCols(prev => prev.includes(colId) ? prev.filter(c => c !== colId) : [...prev, colId]);
   const [anchorCol, setAnchorCol] = useState(0);
   const [previewCol, setPreviewCol] = useState(null);
@@ -389,6 +390,9 @@ export default function SongMapper() {
           onToggleScope={() => setColourScope(s => (s === "all" ? "selected" : "all"))}
           onAddColour={() => columnRefs.current[activeIndex]?.handleAddColour()}
           onRemoveColour={() => columnRefs.current[activeIndex]?.handleRemoveColour()}
+          selectedSectionColour={colStates[activeIndex]?.leftMostSelectedColour || null}
+          colourClipboard={colourClipboard}
+          onCopyColour={setColourClipboard}
         />
         <div onClick={() => columnRefs.current[activeIndex]?.deselectColours?.()} title="Deselect colours" style={{ flex: 1, minHeight: 20, width: "100%", cursor: "default" }} />
       </div>
@@ -431,6 +435,8 @@ export default function SongMapper() {
             focusMode={focusMode && focusColId === colId}
             onToggleFocus={() => toggleFocus(colId)}
             hidden={focusMode && focusColId !== colId}
+            colourClipboard={colourClipboard}
+            onCopyColour={setColourClipboard}
           />
         ))}
       </div>

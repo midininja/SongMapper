@@ -1,3 +1,4 @@
+import { useState } from "react";
 import PaletteBlock from "@/components/PaletteBlock";
 
 export const PRESET_COLOURS = [
@@ -69,11 +70,60 @@ function hexToName(hex) {
 
 export { lighten, darken, hexToName };
 
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+// Indicator square showing the left-most currently selected section's colour.
+// Hover reveals the colour name; right-click offers "Copy colour" (same
+// clipboard as the section strip's right-click menu).
+function SelectedSectionSwatch({ hex, colourClipboard, onCopyColour }) {
+  const [ctxOpen, setCtxOpen] = useState(false);
+  const name = cap(hexToName(hex));
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        title={name}
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxOpen(true); }}
+        style={{
+          width: 24, height: 24, borderRadius: 3, backgroundColor: hex,
+          cursor: "default", boxSizing: "border-box",
+          border: "2px solid rgba(0,0,0,0.25)", marginBottom: 4,
+        }}
+      />
+      {ctxOpen && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setCtxOpen(false)} onContextMenu={(e) => { e.preventDefault(); setCtxOpen(false); }} />
+          <div
+            style={{
+              position: "absolute", top: 0, left: 28, zIndex: 8001,
+              padding: 4, background: "#fff", borderRadius: 5,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.25)", border: "1px solid #d0d0d0",
+              display: "flex", flexDirection: "column", gap: 2,
+            }}
+          >
+            <button
+              onClick={() => { onCopyColour?.(hex); setCtxOpen(false); }}
+              title="Copy this colour"
+              style={{ background: "#e0e0e0", color: "#333", border: "none", borderRadius: 3, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap", textAlign: "left" }}
+            >Copy colour</button>
+            {colourClipboard && (
+              <button
+                onClick={() => setCtxOpen(false)}
+                title={`Clipboard: ${colourClipboard}`}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "#e0e0e0", color: "#333", border: "none", borderRadius: 3, padding: "3px 8px", fontSize: 11, cursor: "default", fontWeight: "bold", whiteSpace: "nowrap", textAlign: "left" }}
+              >Clipboard <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: colourClipboard, border: "1px solid #999" }} /></button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Shared colour strip. Renders one palette block per column (compare mode shows
 // every loaded column's palette, top-to-bottom in visual order, with a small
 // vertical gap between blocks), plus the random toggle, add/remove and — in
 // compare mode — the all/selected scope toggle styled like the + and − buttons.
-export default function ColorPicker({ blocks = [], activeColId, showScopeToggle = false, scope = "all", pipes = [], onToggleScope, onAddColour, onRemoveColour }) {
+export default function ColorPicker({ blocks = [], activeColId, showScopeToggle = false, scope = "all", pipes = [], onToggleScope, onAddColour, onRemoveColour, selectedSectionColour = null, colourClipboard = null, onCopyColour }) {
   const active = blocks.find(b => b.colId === activeColId) || blocks[0];
   const empty = !active || active.palette.length === 0;
   const atMax = active ? active.palette.length >= 16 : false;
@@ -98,6 +148,16 @@ export default function ColorPicker({ blocks = [], activeColId, showScopeToggle 
           boxSizing: "border-box",
         }}
       >🎲</button>
+
+      {/* Selected-section colour indicator — shows the left-most currently
+          selected section's colour. Hover to see the colour name; right-click
+          to copy it (same clipboard as section right-click > copy colour). */}
+      {selectedSectionColour && (
+        <SelectedSectionSwatch hex={selectedSectionColour} colourClipboard={colourClipboard} onCopyColour={onCopyColour} />
+      )}
+
+      {/* Divider between the indicator and the column colour lists */}
+      <div style={{ width: SWATCH, height: 1, background: "#666", margin: "6px 0" }} />
 
       {/* One block per column palette — floating line spacer between blocks */}
       {blocks.map((b, i) => (

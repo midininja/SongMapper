@@ -40,6 +40,7 @@ export default function PaletteBlock({
     if (openPaletteIdx === null && ctxMenuIdx === null) return;
     function handle(e) {
       if (popoverRef.current && !popoverRef.current.contains(e.target)) setOpenPaletteIdx(null);
+      // Dismiss the duplicate menu when a click lands outside both the square and the menu.
       if (ctxMenuRef.current && !ctxMenuRef.current.contains(e.target)) setCtxMenuIdx(null);
     }
     document.addEventListener("mousedown", handle);
@@ -69,7 +70,8 @@ export default function PaletteBlock({
         const isOpen = openPaletteIdx === idx;
         const isSource = selectedSource === idx;
         const isCurrent = selectedColor && selectedColor.toLowerCase() === hex.toLowerCase();
-        const showShades = isHovered && !isOpen;
+        // Shades popover hides while the right-click (duplicate) menu is open.
+        const showShades = isHovered && !isOpen && ctxMenuIdx !== idx;
         const displayName = name.startsWith("#") ? hexToName(hex) : name;
         const main = base || hex;
 
@@ -82,7 +84,7 @@ export default function PaletteBlock({
             <div
               style={{ position: "relative", opacity: dragIdx === idx ? 0.4 : 1 }}
               onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
+              onMouseLeave={() => { setHoveredIdx(null); if (ctxMenuIdx === idx) setCtxMenuIdx(null); }}
               onContextMenu={(e) => { e.preventDefault(); setCtxMenuIdx(idx); setOpenPaletteIdx(null); }}
               draggable
               onDragStart={(e) => onDragStart(e, idx)}
@@ -180,10 +182,13 @@ export default function PaletteBlock({
                   ))}
                 </div>
               )}
-              {/* Right-click context menu — duplicate colour */}
+              {/* Right-click context menu — duplicate colour. Dismisses when the
+                  pointer leaves both the square and the menu itself. */}
               {ctxMenuIdx === idx && (
                 <div
                   ref={ctxMenuRef}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => { setCtxMenuIdx(null); setHoveredIdx(null); }}
                   style={{
                     position: "absolute", top: 0, left: SWATCH,
                     zIndex: 500, padding: 4, background: "#fff", borderRadius: 5,

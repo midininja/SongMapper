@@ -16,7 +16,7 @@ import CollapsedColumnStrip from "@/components/CollapsedColumnStrip";
 
 const YT_INIT_QUEUE = [];
 const PENCIL_CURSOR = "url(data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M11 1l4 4-8 8H3v-4z' fill='%23333' stroke='%23fff' stroke-width='1'/></svg>) 2 14, text";
-const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active = true, selected = false, preview = false, compareMode = false, grab = null, buttonMode = "single", saveDisabled = false, onState, onSelect, onHover, onNew, onLoadCompareMap, onSave, onSaveCompare, onUndo, onRedo, onHistoryPush, onHistoryReset, onDeselectAll, loopChainNext = null, onLoopHandoff, samplerOffset = 0, onSamplerKey, collapsed = false, onToggleCollapse, alignTabHeight = 0, focusMode = false, onToggleFocus, hidden = false }, ref) {
+const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active = true, selected = false, preview = false, compareMode = false, grab = null, buttonMode = "single", saveDisabled = false, onState, onSelect, onHover, onNew, onLoadCompareMap, onSave, onSaveCompare, onUndo, onRedo, onHistoryPush, onHistoryReset, onDeselectAll, loopChainNext = null, onLoopHandoff, samplerOffset = 0, onSamplerKey, collapsed = false, onToggleCollapse, alignTabHeight = 0, focusMode = false, onToggleFocus, hidden = false, colourClipboard = null, onCopyColour }, ref) {
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const playerRef = useRef(null);
   const timelineRef = useRef(null);
@@ -103,7 +103,6 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const [mediaStart, setMediaStart] = useState(0);
   const [mediaEnd, setMediaEnd] = useState(0);
   const [mediaHeight, setMediaHeight] = useState(160); // draggable bottom border
-  const [colourClipboard, setColourClipboard] = useState(null); // hex string for section colour copy/paste
   const [sectionCtxMenu, setSectionCtxMenu] = useState(null); // { x, y, sectionId }
 
   // Keep a ref of sections so async media callbacks can tell fresh loads apart from
@@ -1422,7 +1421,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   function copySectionColour() {
     if (!sectionCtxMenu) return;
     const sec = sections.find(s => s.id === sectionCtxMenu.sectionId);
-    if (sec) setColourClipboard(sec.color);
+    if (sec) onCopyColour?.(sec.color);
     setSectionCtxMenu(null);
   }
   function pasteSectionColour() {
@@ -1453,7 +1452,10 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
       .filter(s => multiSelectedIds.includes(s.id))
       .sort((a, b) => a.time - b.time)
       .map(({ id, time, endTime }) => ({ id, time, endTime }));
-    onState?.(index, { palette, selectedColor, selectedSource, colourMultiSelect, canUndo, canRedo, hasSelection, dirty, videoLoaded, mapName, tabHeight, loopSectionId, multiSelectedIds, loopSections });
+    const leftMostSelected = sections
+      .filter(s => multiSelectedIds.includes(s.id))
+      .sort((a, b) => a.time - b.time)[0];
+    onState?.(index, { palette, selectedColor, selectedSource, colourMultiSelect, canUndo, canRedo, hasSelection, dirty, videoLoaded, mapName, tabHeight, loopSectionId, multiSelectedIds, loopSections, leftMostSelectedColour: leftMostSelected?.color || null });
   }, [palette, selectedColor, selectedSource, colourMultiSelect, selectedId, multiSelectedIds, dirty, videoLoaded, mapName, canUndo, canRedo, hasSelection, tabHeight, loopSectionId, sections]);
 
   useImperativeHandle(ref, () => ({
