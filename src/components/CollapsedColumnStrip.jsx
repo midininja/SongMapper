@@ -2,8 +2,11 @@ import { TH } from "@/components/mapControls";
 
 // Slim strip shown in place of a collapsed compare column: the expand triangle
 // sits above the drag handle (same arrangement as the expanded header) and the
-// map name runs vertically so collapsed columns stay identifiable.
-export default function CollapsedColumnStrip({ index, order, selected, preview, grab, mapName, onSelect, onHover, onToggleCollapse }) {
+// map name runs vertically so collapsed columns stay identifiable. A save
+// button appears under the grab area when this column would show one if it
+// were expanded (single selected column, or right-most of a multi-select).
+export default function CollapsedColumnStrip({ index, order, selected, preview, grab, mapName, onSelect, onHover, onToggleCollapse, buttonMode, saveDisabled, onSave, onSaveCompare }) {
+  const showSave = buttonMode === "single" || buttonMode === "compareSave";
   return (
     <div
       onPointerDown={(e) => { if (e.target.closest('button,input,select')) return; onSelect?.(index, e); }}
@@ -38,11 +41,20 @@ export default function CollapsedColumnStrip({ index, order, selected, preview, 
           style={{ cursor: "grab", background: "transparent", border: "none", color: "#999", fontSize: 14, lineHeight: 1, padding: "0 2px", flexShrink: 0 }}
         >⋮⋮</button>
       )}
+      {showSave && (
+        <button
+          onPointerDown={(e) => { onSelect?.(index, e); }}
+          onClick={() => buttonMode === "compareSave" ? onSaveCompare?.(index) : onSave?.(index)}
+          disabled={saveDisabled}
+          title="Save map"
+          style={{ flexShrink: 0, background: saveDisabled ? TH.btnDisabled : "#e0e0e0", color: saveDisabled ? TH.btnDisabledFg : "#333", border: "none", borderRadius: 4, cursor: saveDisabled ? "not-allowed" : "pointer", fontSize: 14, lineHeight: 1, padding: "3px 5px" }}
+        >💾</button>
+      )}
       <div
         title={mapName}
         style={{
           writingMode: "vertical-rl", transform: "rotate(180deg)",
-          fontSize: 11, color: "#735bc1", fontWeight: "bold",
+          fontSize: 18, color: "#735bc1", fontWeight: "bold",
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
           flex: 1, minHeight: 0, maxHeight: 320, width: "100%", textAlign: "center",
         }}

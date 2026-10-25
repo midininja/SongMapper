@@ -353,8 +353,10 @@ export default function SubsectionNotes({ section, row, rows, notes, commitNotes
                   className="sm-label"
                   onClick={e => { if (dragMovedRef.current) return; e.stopPropagation(); setEditValue(p.label); setEditingKey(p.subKey); }}
                   title="Click to rename"
-                  style={{ position: "absolute", left: `${midPct}%`, top: "50%", transform: "translate(-50%, -50%)", fontSize: 8, fontWeight: "bold", color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "70%", padding: "1px 3px", cursor: "pointer" }}
-                >{p.label}</span>
+                  style={{ position: "absolute", left: `${midPct}%`, top: "50%", transform: "translate(-50%, -50%)", fontSize: 8, fontWeight: "bold", color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "70%", padding: "1px 3px", cursor: "pointer", borderRadius: 2, minWidth: p.label ? undefined : "0.8ch", transition: "background 0.15s" }}
+                  onMouseEnter={e => { if (!p.label) e.currentTarget.style.background = "rgba(255,255,255,0.5)"; }}
+                  onMouseLeave={e => { if (!p.label) e.currentTarget.style.background = "transparent"; }}
+                >{p.label || "\u00A0"}</span>
               )}
               {samplerKeyFor(p.subKey) && (
                 <span style={{ position: "absolute", right: 2, top: "50%", transform: "translateY(-50%)", fontSize: 8, color: "#000", background: "rgba(243,156,18,0.85)", borderRadius: 2, padding: "0 2px", fontWeight: "bold", pointerEvents: "none" }}>{samplerKeyFor(p.subKey)}</span>

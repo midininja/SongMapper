@@ -1670,7 +1670,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
       )}
 
       {collapsed && (
-        <CollapsedColumnStrip index={index} order={order} selected={selected} preview={preview} grab={grab} mapName={mapName} onSelect={onSelect} onHover={onHover} onToggleCollapse={onToggleCollapse} />
+        <CollapsedColumnStrip index={index} order={order} selected={selected} preview={preview} grab={grab} mapName={mapName} onSelect={onSelect} onHover={onHover} onToggleCollapse={onToggleCollapse} buttonMode={buttonMode} saveDisabled={saveDisabled} onSave={onSave} onSaveCompare={onSaveCompare} />
       )}
       <div
         onPointerDown={(e) => { if (e.target.closest('button,input,select')) return; wasSelectedRef.current = selected; onSelect?.(index, e); }}
@@ -1992,8 +1992,10 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                             onClick={e => { e.stopPropagation(); if (timelineDragRef.current) return; selectSectionTab(sec, e.ctrlKey || e.metaKey); setLabelValue(sec.label); setEditingLabelId(sec.id); }}
                             onDoubleClick={e => e.stopPropagation()}
                             className="sm-label"
-                            style={{ position: "absolute", left: 3, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#fff", fontWeight: "bold", textShadow: "0 0 4px #000", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "80%", padding: "1px 4px", pointerEvents: "all", zIndex: 65 }}
-                          >{sec.label}</span>
+                            style={{ position: "absolute", left: 3, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#fff", fontWeight: "bold", textShadow: "0 0 4px #000", whiteSpace: "nowrap", overflow: "hidden", maxWidth: "80%", padding: "1px 4px", pointerEvents: "all", zIndex: 65, borderRadius: 2, minWidth: sec.label ? undefined : "0.8ch", transition: "background 0.15s" }}
+                            onMouseEnter={e => { if (!sec.label) e.currentTarget.style.background = "rgba(255,255,255,0.3)"; }}
+                            onMouseLeave={e => { if (!sec.label) e.currentTarget.style.background = "transparent"; }}
+                          >{sec.label || "\u00A0"}</span>
                           {samplerKey && (
                             <span style={{ position: "absolute", right: 3, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#000", background: "rgba(243,156,18,0.85)", borderRadius: 2, padding: "0 3px", fontWeight: "bold", pointerEvents: "none", zIndex: 65 }}>{samplerKey}</span>
                           )}
@@ -2108,7 +2110,11 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                           }}
                         />
                       ) : (
-                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90 }}>{sec.label}</span>
+                        <span
+                          style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 90, borderRadius: 2, minWidth: sec.label ? undefined : "0.8ch", transition: "background 0.15s" }}
+                          onMouseEnter={e => { if (!sec.label) e.currentTarget.style.background = "rgba(0,0,0,0.1)"; }}
+                          onMouseLeave={e => { if (!sec.label) e.currentTarget.style.background = "transparent"; }}
+                        >{sec.label || "\u00A0"}</span>
                       )}
                     </div>
                   );
