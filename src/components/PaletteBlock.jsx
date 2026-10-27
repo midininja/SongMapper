@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { SHADE_STEPS, lighten, hexToName } from "@/components/ColorPicker";
+import { SHADE_STEPS, lighten, hexToName, colourDisplayName } from "@/components/ColorPicker";
 
 const ACCENT = "#0a5cd6";
 const SWATCH = 24;
@@ -72,7 +72,7 @@ export default function PaletteBlock({
         const isCurrent = selectedColor && selectedColor.toLowerCase() === hex.toLowerCase();
         // Shades popover hides while the right-click (duplicate) menu is open.
         const showShades = isHovered && !isOpen && ctxMenuIdx !== idx;
-        const displayName = name.startsWith("#") ? hexToName(hex) : name;
+        const displayName = colourDisplayName(hex, palette);
         const main = base || hex;
 
         return (
@@ -95,7 +95,7 @@ export default function PaletteBlock({
               {/* Swatch — click selects the colour (Ctrl+click toggles multi-select) */}
               <div
                 onClick={(e) => { if (e.ctrlKey || e.metaKey) { e.stopPropagation(); onToggleColourSelect?.(idx); } else handleSquareClick(hex, idx); }}
-                title={cap(displayName)}
+                title={displayName}
                 style={{
                   width: SWATCH, height: SWATCH, borderRadius: 3,
                   backgroundColor: hex, cursor: "pointer", boxSizing: "border-box",
@@ -131,30 +131,37 @@ export default function PaletteBlock({
                     boxShadow: "0 4px 16px rgba(0,0,0,0.25)", border: "1px solid #d0d0d0",
                   }}
                 >
-                  <div
-                    onClick={() => onRecolourSquare(idx, main)}
-                    title={cap(displayName)}
-                    style={{
-                      width: SWATCH, height: SWATCH, borderRadius: 3,
-                      backgroundColor: main, cursor: "pointer",
-                      border: main.toLowerCase() === hex.toLowerCase() ? `2px solid ${ACCENT}` : "2px solid transparent",
-                    }}
-                  />
-                  {SHADE_STEPS.map((step, i) => {
-                    const c = lighten(main, step);
+                  {(() => {
+                    const mainName = colourDisplayName(main, palette);
                     return (
-                      <div
-                        key={i}
-                        onClick={() => onSelectShade(idx, c)}
-                        title={`${cap(displayName)} ${i + 1}`}
-                        style={{
-                          width: SWATCH, height: SWATCH, borderRadius: 3,
-                          backgroundColor: c, cursor: "pointer",
-                          border: c.toLowerCase() === hex.toLowerCase() ? `2px solid ${ACCENT}` : "2px solid transparent",
-                        }}
-                      />
+                      <>
+                        <div
+                          onClick={() => onRecolourSquare(idx, main)}
+                          title={mainName}
+                          style={{
+                            width: SWATCH, height: SWATCH, borderRadius: 3,
+                            backgroundColor: main, cursor: "pointer",
+                            border: main.toLowerCase() === hex.toLowerCase() ? `2px solid ${ACCENT}` : "2px solid transparent",
+                          }}
+                        />
+                        {SHADE_STEPS.map((step, i) => {
+                          const c = lighten(main, step);
+                          return (
+                            <div
+                              key={i}
+                              onClick={() => onSelectShade(idx, c)}
+                              title={`${mainName} ${i + 1}`}
+                              style={{
+                                width: SWATCH, height: SWATCH, borderRadius: 3,
+                                backgroundColor: c, cursor: "pointer",
+                                border: c.toLowerCase() === hex.toLowerCase() ? `2px solid ${ACCENT}` : "2px solid transparent",
+                              }}
+                            />
+                          );
+                        })}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               )}
               {/* 8-bit palette popover — pick a new main colour for this square */}

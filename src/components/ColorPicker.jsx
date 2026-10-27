@@ -72,12 +72,28 @@ export { lighten, darken, hexToName };
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+// Resolve a hex (which may be a lighter shade of a palette main colour) to its
+// display name: "Hot pink" for a main colour, "Hot pink 2" for its 2nd shade,
+// falling back to the nearest named colour when no palette entry matches.
+export function colourDisplayName(hex, palette = []) {
+  if (!hex) return "";
+  const target = hex.toLowerCase();
+  for (const entry of palette) {
+    const main = entry.base || entry.hex;
+    const mainName = entry.name && !entry.name.startsWith("#") ? entry.name : hexToName(main);
+    if (main.toLowerCase() === target) return cap(mainName);
+    const idx = SHADE_STEPS.findIndex(s => lighten(main, s).toLowerCase() === target);
+    if (idx >= 0) return `${cap(mainName)} ${idx + 1}`;
+  }
+  return cap(hexToName(hex));
+}
+
 // Indicator square showing the left-most currently selected section's colour.
 // Hover reveals the colour name; right-click offers "Copy colour" (same
 // clipboard as the section strip's right-click menu).
-function SelectedSectionSwatch({ hex, colourClipboard, onCopyColour }) {
+function SelectedSectionSwatch({ hex, colourClipboard, onCopyColour, palette }) {
   const [ctxOpen, setCtxOpen] = useState(false);
-  const name = cap(hexToName(hex));
+  const name = colourDisplayName(hex, palette);
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -153,7 +169,7 @@ export default function ColorPicker({ blocks = [], activeColId, showScopeToggle 
           selected section's colour. Hover to see the colour name; right-click
           to copy it (same clipboard as section right-click > copy colour). */}
       {selectedSectionColour && (
-        <SelectedSectionSwatch hex={selectedSectionColour} colourClipboard={colourClipboard} onCopyColour={onCopyColour} />
+        <SelectedSectionSwatch hex={selectedSectionColour} colourClipboard={colourClipboard} onCopyColour={onCopyColour} palette={active?.palette || []} />
       )}
 
       {/* Divider between the indicator and the column colour lists */}
