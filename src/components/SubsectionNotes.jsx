@@ -363,7 +363,7 @@ export default function SubsectionNotes({ section, row, rows, notes, commitNotes
                   className="sm-label"
                   onClick={e => { if (dragMovedRef.current) return; e.stopPropagation(); setEditValue(p.label); setEditingKey(p.subKey); }}
                   title="Click to rename"
-                  style={{ position: "absolute", left: `${midPct}%`, top: "50%", transform: "translate(-50%, -50%)", fontSize: 8, fontWeight: "bold", color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "70%", padding: "1px 3px", cursor: "pointer", borderRadius: 2, minWidth: p.label ? undefined : "0.8ch", transition: "background 0.15s" }}
+                  style={{ position: "absolute", left: `${midPct}%`, top: "50%", transform: "translate(-50%, -50%)", fontSize: 8, fontWeight: "bold", color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "70%", padding: "1px 3px", cursor: "pointer", userSelect: "text", WebkitUserSelect: "text", borderRadius: 2, minWidth: p.label ? undefined : "0.8ch", transition: "background 0.15s" }}
                   onMouseEnter={e => { if (!p.label) e.currentTarget.style.background = "rgba(255,255,255,0.5)"; }}
                   onMouseLeave={e => { if (!p.label) e.currentTarget.style.background = "transparent"; }}
                 >{p.label || "\u00A0"}</span>
@@ -483,7 +483,7 @@ function SubNotePreview({ value, onExpand }) {
         padding: "4px 6px", fontSize: 12, color: SN.previewFg, cursor: "pointer",
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
         minHeight: 22, lineHeight: "16px",
-        userSelect: "none", WebkitUserSelect: "none",
+        userSelect: "text", WebkitUserSelect: "text",
       }}
     >{text || <span style={{ color: SN.emptyFg, fontStyle: "italic" }}>empty</span>}</div>
   );

@@ -1794,7 +1794,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                 />
               ) : (
                 <h2 onClick={() => { if (wasSelectedRef.current && selected) setEditingMapName(true); }} title={selected ? "Click to rename" : "Click to select this column"} className={selected ? "sm-label" : undefined}
-                  style={{ margin: 0, fontSize: 18, fontWeight: "bold", color: "#735bc1", cursor: "pointer", userSelect: "none", borderBottom: "2px solid transparent", padding: "1px 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  style={{ margin: 0, fontSize: 18, fontWeight: "bold", color: "#735bc1", cursor: "pointer", userSelect: "text", WebkitUserSelect: "text", borderBottom: "2px solid transparent", padding: "1px 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {mapName}
                 </h2>
               )}
@@ -2052,7 +2052,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                         boxSizing: "border-box",
                         outline: isSelected ? "2px solid #0f0f0f" : isMulti ? "2px solid #f39c12" : "none",
                         borderRadius: 2, overflow: "hidden",
-                        userSelect: "none", WebkitUserSelect: "none"
+                        userSelect: "text", WebkitUserSelect: "text"
                       }}
                     >
                       {editingLabelId === sec.id ? (
@@ -2142,7 +2142,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                         borderRadius: "3px 3px 0 0", cursor: "pointer",
                         border: isActive ? `2px solid ${sec.color}` : "2px solid #d0d0d0",
                         borderBottom: "none", maxWidth: 120,
-                        userSelect: "none", WebkitUserSelect: "none",
+                        userSelect: "text", WebkitUserSelect: "text",
                       }}
                       title={`${sec.label} — click to select, dbl-click to rename, Ctrl+click to play`}
                     >
