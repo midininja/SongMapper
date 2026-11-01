@@ -183,6 +183,16 @@ export default function SubsectionNotes({ section, row, rows, notes, commitNotes
 
   // Multi-delete: plain removal of every selected division (and its note).
   function doDeleteMany(keys) {
+    const allSelected = keys.includes("start") && subs.every(s => keys.includes(s.id));
+    if (allSelected) {
+      const newNotes = withRowNotes(r => ({ ...r, startLabel: null, subsections: [] }));
+      const rowPrefix = `${section.id}#${row.id}#`;
+      Object.keys(newNotes).forEach(k => { if (k.startsWith(rowPrefix)) delete newNotes[k]; });
+      commitNotes(newNotes);
+      setConfirmDeleteIds(null);
+      onSelectSub?.(null);
+      return;
+    }
     const ids = new Set();
     keys.forEach(k => ids.add(k === "start" ? (subs[0]?.id ?? k) : k));
     const newNotes = withRowNotes(r => ({ ...r, subsections: (r.subsections || []).filter(x => !ids.has(x.id)) }));

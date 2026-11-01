@@ -169,7 +169,7 @@ export default function ColorPicker({ blocks = [], activeColId, showScopeToggle 
           selected section's colour. Hover to see the colour name; right-click
           to copy it (same clipboard as section right-click > copy colour). */}
       {selectedSectionColour && (
-        <SelectedSectionSwatch hex={selectedSectionColour} colourClipboard={colourClipboard} onCopyColour={onCopyColour} palette={active?.palette || []} />
+        <SelectedSectionSwatch hex={selectedSectionColour} colourClipboard={colourClipboard} onCopyColour={onCopyColour} palette={blocks.flatMap(b => b.palette)} />
       )}
 
       {/* Divider between the indicator and the column colour lists */}

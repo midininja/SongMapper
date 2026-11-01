@@ -418,6 +418,14 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   }
   function stopTracking() { cancelAnimationFrame(rafRef.current); }
 
+  // With several sections selected, the playhead entering a selected section's
+  // zone activates that section's notes (as if its leftmost handle were clicked).
+  useEffect(() => {
+    if (multiSelectedIds.length < 2 || duration === 0) return;
+    const sec = sections.find(s => multiSelectedIds.includes(s.id) && currentTime >= s.time && currentTime < s.endTime);
+    if (sec && sec.id !== selectedId) { setSubFocus(null); setSelectedId(sec.id); }
+  }, [currentTime, multiSelectedIds, sections]);
+
   // ── Loop effect ──────────────────────────────────────────────────────────────
   // When several columns have an active loop (compare mode), their selected
   // sections join ONE shared cycle: at the end of this column's last selected
@@ -958,8 +966,21 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   }
   function doDeleteSelected() {
     setConfirmSectionDelete(false);
+    const allSelected = sections.length > 0 && (multiSelectedIds.length === sections.length || (selectedId !== null && sections.length === 1));
+    if (allSelected) { resetStrip(); return; }
     if (multiSelectedIds.length > 1) { deleteMultiSections(); return; }
     deleteSection();
+  }
+
+  // Deleting every section returns the strip to a fresh, unedited state: one
+  // undivided section spanning the whole media, no notes, initial label.
+  function resetStrip() {
+    const sorted = [...sections].sort((a, b) => a.time - b.time);
+    const fresh = [{ id: Date.now(), time: sorted[0].time, endTime: sorted[sorted.length - 1].endTime, color: sorted[0].color, label: "Section 1", subsections: [] }];
+    setSelectedId(null);
+    setMultiSelectedIds([]);
+    setSubSelection(null);
+    pushHistory(fresh, palette, {});
   }
 
   // Delete several sections at once — each merges into its neighbour (same rule as
