@@ -15,6 +15,20 @@ export const PRESET_COLOURS = [
   { hex: "#f71818", name: "red" },
 ];
 
+// 8-bit style palette shown in the 6×6 grid — the only colours random picks use.
+export const PALETTE_8BIT = [
+  "#000000", "#404040", "#808080", "#c0c0c0", "#ffffff",
+  "#7f0000", "#ff0000", "#ff7f7f", "#f71818",
+  "#7f3f00", "#ff7f00", "#fdb462", "#f39c12",
+  "#7f7f00", "#ffff00", "#ffed6f",
+  "#007f00", "#00ff00", "#33cc33", "#1abc9c", "#16a085",
+  "#007f7f", "#00ffff", "#80b1d3",
+  "#00007f", "#0000ff", "#3399ff",
+  "#7f007f", "#735bc1", "#9b59b6",
+  "#ff00ff", "#ff1493", "#ff69b4",
+  "#34495e", "#95a5a6", "#d2b48c",
+];
+
 const ACCENT = "#0a5cd6";
 const SWATCH = 24;
 export const SHADE_STEPS = [0.15, 0.3, 0.45, 0.6, 0.75, 0.9];

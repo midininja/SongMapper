@@ -8,7 +8,7 @@ import { PRESET_COLOURS, SHADE_STEPS, lighten, hexToName } from "@/components/Co
 import { computePeaks } from "@/lib/waveform";
 import {
   TH, MAX_ZOOM, SAMPLER_KEYS, getYouTubeId, isYouTubeUrl, isSoundCloudUrl, isAuralPapersUrl,
-  randomPresetColour, pickContrasting, ConfirmModal,
+  randomPresetColour, pickContrasting, ConfirmModal, SWATCH_COLOURS,
 } from "@/components/mapControls";
 import SectionEditBar from "@/components/SectionEditBar";
 import TrimHandle from "@/components/TrimHandle";
@@ -1129,7 +1129,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   }
   function handleAddColour() {
     if (palette.length >= 16) return;
-    const avail = PRESET_COLOURS.filter(c => !palette.some(p => p.hex.toLowerCase() === c.hex.toLowerCase()));
+    const avail = SWATCH_COLOURS.filter(c => !palette.some(p => p.hex.toLowerCase() === c.hex.toLowerCase()));
     const pick = avail.length > 0 ? avail[Math.floor(Math.random() * avail.length)] : randomPresetColour();
     pushHistory(sections, [...palette, { hex: pick.hex, name: pick.name, base: pick.hex }]);
   }

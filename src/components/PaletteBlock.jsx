@@ -1,22 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { SHADE_STEPS, lighten, hexToName, colourDisplayName } from "@/components/ColorPicker";
+import { SHADE_STEPS, lighten, hexToName, colourDisplayName, PALETTE_8BIT } from "@/components/ColorPicker";
 
 const ACCENT = "#0a5cd6";
 const SWATCH = 24;
-
-// 8-bit style palette — 36 colours fills a 6×6 grid (bottom-right = tan)
-const PALETTE_8BIT = [
-  "#000000", "#404040", "#808080", "#c0c0c0", "#ffffff",
-  "#7f0000", "#ff0000", "#ff7f7f", "#f71818",
-  "#7f3f00", "#ff7f00", "#fdb462", "#f39c12",
-  "#7f7f00", "#ffff00", "#ffed6f",
-  "#007f00", "#00ff00", "#33cc33", "#1abc9c", "#16a085",
-  "#007f7f", "#00ffff", "#80b1d3",
-  "#00007f", "#0000ff", "#3399ff",
-  "#7f007f", "#735bc1", "#9b59b6",
-  "#ff00ff", "#ff1493", "#ff69b4",
-  "#34495e", "#95a5a6", "#d2b48c",
-];
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 

@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { PRESET_COLOURS } from "@/components/ColorPicker";
+import { PALETTE_8BIT, hexToName } from "@/components/ColorPicker";
+
+export const SWATCH_COLOURS = PALETTE_8BIT.map(hex => ({ hex, name: hexToName(hex) }));
 
 export function randomPresetColour() {
-  return PRESET_COLOURS[Math.floor(Math.random() * PRESET_COLOURS.length)];
+  return SWATCH_COLOURS[Math.floor(Math.random() * SWATCH_COLOURS.length)];
 }
 export function hueFromHex(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -19,11 +21,11 @@ export function hueFromHex(hex) {
 export function pickContrasting(lastHex) {
   if (!lastHex) return randomPresetColour();
   const lastHue = hueFromHex(lastHex);
-  const candidates = PRESET_COLOURS.filter((c) => {
+  const candidates = SWATCH_COLOURS.filter((c) => {
     const dh = Math.abs(hueFromHex(c.hex) - lastHue);
     return Math.min(dh, 360 - dh) > 60;
   });
-  const pool = candidates.length > 0 ? candidates : PRESET_COLOURS.filter((c) => c.hex.toLowerCase() !== lastHex.toLowerCase());
+  const pool = candidates.length > 0 ? candidates : SWATCH_COLOURS.filter((c) => c.hex.toLowerCase() !== lastHex.toLowerCase());
   return pool[Math.floor(Math.random() * pool.length)] || randomPresetColour();
 }
 
