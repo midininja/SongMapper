@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import SectionNotesPanel from "@/components/SectionNotesPanel";
+import { CommentsProvider } from "@/components/NoteComments";
 import SectionBoundaryEditor from "@/components/SectionBoundaryEditor";
 import SectionDownloader from "@/components/SectionDownloader";
 import LoadMediaPanel from "@/components/LoadMediaPanel";
@@ -70,6 +71,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
   const [volume, setVolume] = useState(1);
   const [embedDurationInput, setEmbedDurationInput] = useState("");
   const [notes, setNotes] = useState({});
+  const [comments, setComments] = useState({});
   const [loopSectionId, setLoopSectionId] = useState(null);
   const [ytPlaying, setYtPlaying] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -539,7 +541,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     const emptyNotes = {};
     histRef.current = [{ sections: initial, palette: initialPalette, notes: emptyNotes }]; histIdxRef.current = 0;
     setSections(initial); setPalette(initialPalette);
-    setNotes(emptyNotes); setSelectedId(null);
+    setNotes(emptyNotes); setComments({}); setSelectedId(null);
     setSelectedColor(pc.hex); setSelectedSource("preview");
     setMediaStart(0); setMediaEnd(d);
     shadeIterRef.current = 0;
@@ -556,7 +558,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     setPendingLoad(null); stopTracking();
     setApPlaying(false); setIsPlaying(false); setScPlaying(false);
     setVideoLoaded(false); setDuration(0); setCurrentTime(0);
-    setSections([]); setNotes({}); setSelectedId(null);
+    setSections([]); setNotes({}); setComments({}); setSelectedId(null);
     setSubLoop(null); setSubSelection(null);
     setEmbedDurationInput(""); setLoopSectionId(null);
     setZoomLevel(1); setZoomOffset(0); scWidgetRef.current = null;
@@ -609,7 +611,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
     setApPlaying(false); setIsPlaying(false); setScPlaying(false);
     setMediaType(null); setActiveUrl(""); setLocalFileUrl(null); setLocalFileName("");
     setVideoLoaded(false); setDuration(0); setCurrentTime(0);
-    setSections([]); setNotes({}); setSelectedId(null);
+    setSections([]); setNotes({}); setComments({}); setSelectedId(null);
     setSubLoop(null); setSubSelection(null);
     setEmbedDurationInput(""); setLoopSectionId(null);
     setZoomLevel(1); setZoomOffset(0); scWidgetRef.current = null;
@@ -1497,7 +1499,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
 
   // ── Save / Load map ───────────────────────────────────────────────────────────
   function saveMap() {
-    const data = { version: 2, mapName, mediaType, activeUrl, localFileName, duration, sections, notes, palette, selectedColor, selectedSource };
+    const data = { version: 2, mapName, mediaType, activeUrl, localFileName, duration, sections, notes, comments, palette, selectedColor, selectedSource };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
     a.download = `${mapName.replace(/[^a-z0-9\-_ ]/gi, "_")}.json`; a.click();
@@ -1540,7 +1542,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
       }
       sec.subsections = [];
     });
-    setSections(migratedSections); setNotes(migratedNotes);
+    setSections(migratedSections); setNotes(migratedNotes); setComments(data.comments || {});
     setSelectedId(null); setLoopSectionId(null); setSubLoop(null); setSubSelection(null);
     setMediaType(data.mediaType || null); setActiveUrl(data.activeUrl || "");
     setLocalFileName(data.localFileName || "");
@@ -2198,6 +2200,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                   );
                 })}
               </div>
+              <CommentsProvider comments={comments} setComments={setComments}>
               <SectionNotesPanel
                 stripFocus={subFocus}
                 onSubSelectionChange={setSubSelection}
@@ -2215,6 +2218,7 @@ const MapColumn = forwardRef(function MapColumn({ index = 0, order = 0, active =
                 onSeek={seekTo}
                 previewNotes={setNotes}
               />
+              </CommentsProvider>
             </div>
           )}
           <div onClick={e => { if (e.target === e.currentTarget) onDeselectAll?.(); }} style={{ flex: focusMode ? 0 : 1, minHeight: focusMode ? 0 : 16 }} />

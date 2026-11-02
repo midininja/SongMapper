@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import SubsectionNotes from "@/components/SubsectionNotes";
+import { useComments } from "@/components/NoteComments";
 import { musicalLengthParts } from "@/lib/musicalTime";
 
 const DYNAMIC_VALUES = ["ppp", "pp", "p", "mp", "mf", "f", "ff", "fff"];
@@ -48,6 +49,7 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
   onUpdate, onRequestDelete, collapsed, onToggleCollapse,
   dragIdx, dragOverIdx, onDragStart, onDragEnd, onDragOver, onDrop }) {
   const textareaRef = useRef(null);
+  const commentActions = useComments();
   const isOver = dragOverIdx === idx && dragIdx !== idx;
 
   useEffect(() => {
@@ -133,6 +135,8 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
               contentEditable
               suppressContentEditableWarning
               onInput={handleInput}
+              onClick={commentActions.openFromClick}
+              onContextMenu={commentActions.openMenu}
               style={{
                 width: "100%", boxSizing: "border-box",
                 background: "transparent",

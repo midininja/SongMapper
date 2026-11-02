@@ -137,6 +137,25 @@ html { font-size: 16px; }
   list-style-type: "◦  ";
 }
 
+/* Commented note text — translucent yellow, with a speech-bubble marker after it */
+.sm-comment {
+  background: rgba(255, 214, 0, 0.35);
+  border-radius: 2px;
+}
+.sm-comment-btn {
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  margin-left: 2px;
+  font-size: 11px;
+  line-height: 1;
+  vertical-align: baseline;
+}
+.sm-comment-btn::before {
+  content: "\1F4AC";
+}
+
 /* Copy toast — appears top-right, holds ~1s, then fades out */
 @keyframes sm-toast-fade {
   0% { opacity: 0; transform: translateY(-6px); }

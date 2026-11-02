@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { SAMPLER_KEYS } from "@/components/mapControls";
+import { useComments } from "@/components/NoteComments";
 
 const SN = {
   previewFg: "#888",
@@ -448,6 +449,7 @@ export default function SubsectionNotes({ section, row, rows, notes, commitNotes
 
 function SubNoteText({ value, onChange }) {
   const ref = useRef(null);
+  const commentActions = useComments();
   useEffect(() => {
     const el = ref.current;
     if (el && value !== el.innerHTML) el.innerHTML = value || "";
@@ -460,6 +462,8 @@ function SubNoteText({ value, onChange }) {
       contentEditable
       suppressContentEditableWarning
       onInput={(e) => onChange(e.currentTarget.innerHTML)}
+      onClick={commentActions.openFromClick}
+      onContextMenu={commentActions.openMenu}
       style={{
         flex: 1, minWidth: 0, boxSizing: "border-box",
         background: "transparent", color: "#0f0f0f", fontSize: 12,
