@@ -36,6 +36,16 @@ function wrapRange(range, cid) {
   mark.after(button);
 }
 
+function removeCommentMarker(editor, cid) {
+  editor.querySelectorAll(`[data-cbtn="${cid}"]`).forEach(button => button.remove());
+  editor.querySelectorAll(`.sm-comment[data-cid="${cid}"]`).forEach(mark => {
+    const parent = mark.parentNode;
+    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+    mark.remove();
+  });
+  editor.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function threadPosition(thread) {
   const left = Math.min(thread.editorRect.right + 8, window.innerWidth - POPOVER_WIDTH - 8);
   const top = Math.max(8, Math.min(thread.anchor.top - 8, window.innerHeight - 320));
@@ -77,7 +87,7 @@ export function CommentsProvider({ comments, setComments, children }) {
     if (!button) return;
     e.preventDefault();
     setMenu(null);
-    setThread({ cid: button.dataset.cbtn, anchor: button.getBoundingClientRect(), editorRect: e.currentTarget.getBoundingClientRect() });
+    setThread({ cid: button.dataset.cbtn, editor: e.currentTarget, anchor: button.getBoundingClientRect(), editorRect: e.currentTarget.getBoundingClientRect() });
   }
 
   function startComment() {
@@ -89,7 +99,7 @@ export function CommentsProvider({ comments, setComments, children }) {
     setComments(prev => ({ ...prev, [cid]: [] }));
     editor.dispatchEvent(new Event("input", { bubbles: true }));
     const button = editor.querySelector(`[data-cbtn="${cid}"]`);
-    if (button) setThread({ cid, anchor: button.getBoundingClientRect(), editorRect: editor.getBoundingClientRect() });
+    if (button) setThread({ cid, editor, anchor: button.getBoundingClientRect(), editorRect: editor.getBoundingClientRect() });
   }
 
   function addComment(cid, text) {
@@ -99,7 +109,18 @@ export function CommentsProvider({ comments, setComments, children }) {
     setComments(prev => ({ ...prev, [cid]: (prev[cid] || []).map(c => c.id === id ? { ...c, text, editedAt: Date.now() } : c) }));
   }
   function deleteComment(cid, id) {
-    setComments(prev => ({ ...prev, [cid]: (prev[cid] || []).filter(c => c.id !== id) }));
+    const remaining = (comments[cid] || []).filter(c => c.id !== id);
+    if (remaining.length > 0) {
+      setComments(prev => ({ ...prev, [cid]: remaining }));
+      return;
+    }
+    removeCommentMarker(thread.editor, cid);
+    setComments(prev => {
+      const next = { ...prev };
+      delete next[cid];
+      return next;
+    });
+    setThread(null);
   }
 
   return (
