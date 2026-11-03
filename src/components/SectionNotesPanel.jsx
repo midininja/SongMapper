@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import SubsectionNotes from "@/components/SubsectionNotes";
 import { useComments } from "@/components/NoteComments";
-import { musicalLengthParts } from "@/lib/musicalTime";
+import { lengthContext, lengthParts, lengthUnitSize, LENGTH_FIELDS } from "@/lib/musicalTime";
 
 const DYNAMIC_VALUES = ["ppp", "pp", "p", "mp", "mf", "f", "ff", "fff"];
 const BARS_OPTIONS = Array.from({ length: 120 }, (_, i) => i + 1);
@@ -45,7 +45,7 @@ function stripHtml(html) {
 
 // ── NoteRow ───────────────────────────────────────────────────────────────────
 function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
-  subLengthLabel, subLengthActive,
+  subLength, subLengthActive, onAdjustSubLength,
   onUpdate, onRequestDelete, collapsed, onToggleCollapse,
   dragIdx, dragOverIdx, onDragStart, onDragEnd, onDragOver, onDrop }) {
   const textareaRef = useRef(null);
@@ -141,7 +141,7 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
                 width: "100%", boxSizing: "border-box",
                 background: "transparent",
                 color: NP.textFg, fontSize: 13,
-                padding: "7px 60px 7px 10px",
+                padding: subLength ? "7px 216px 7px 10px" : "7px 60px 7px 10px",
                 border: "none", outline: "none",
                 fontFamily: "inherit", lineHeight: 1.6,
                 minHeight: 36,
@@ -150,11 +150,20 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}
             />
-            {subLengthLabel && (
-              <span
-                title="Selected subsection length (bars.beats.8ths.16ths)"
-                style={{ position: "absolute", top: 7, right: 58, fontSize: 9, fontFamily: "monospace", color: subLengthActive ? "#f39c12" : "#999", userSelect: "none", WebkitUserSelect: "none" }}
-              >{subLengthLabel}</span>
+            {subLength && (
+              <div
+                data-notearea="true"
+                onMouseDown={e => e.stopPropagation()}
+                title="Selected subsection length (bars.beats.eighths.sixteenths)"
+                style={{ position: "absolute", top: 5, right: 58, height: 22, display: "flex", alignItems: "center", gap: 4, color: subLengthActive ? "#f39c12" : "#999", fontFamily: "monospace", userSelect: "none", WebkitUserSelect: "none" }}
+              >
+                {LENGTH_FIELDS.map((field, i) => (
+                  <div key={field} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    {i > 0 && <span style={{ fontSize: 9 }}>.</span>}
+                    <LengthBox value={subLength[field]} label={field} onStep={dir => onAdjustSubLength(field, dir)} />
+                  </div>
+                ))}
+              </div>
             )}
             <select
               data-notearea="true"
@@ -198,6 +207,28 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
         onMouseOver={e => e.currentTarget.style.color = "#e74c3c"}
         onMouseOut={e => e.currentTarget.style.color = NP.collapseFg}
       >×</button>
+    </div>
+  );
+}
+
+// ── LengthBox ─────────────────────────────────────────────────────────────────
+function LengthBox({ value, label, onStep }) {
+  const stepButton = {
+    background: "transparent", border: "none", padding: 0, margin: 0,
+    width: 10, height: 9, lineHeight: 1, fontSize: 6, color: "inherit",
+    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+  };
+  return (
+    <div title={label} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <span style={{
+        minWidth: 18, height: 18, boxSizing: "border-box", padding: "0 3px",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        border: "1px solid currentColor", borderRadius: 3, fontSize: 10,
+      }}>{value}</span>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <button onMouseDown={e => e.preventDefault()} onClick={() => onStep(1)} title={`Increase ${label}`} style={stepButton}>▲</button>
+        <button onMouseDown={e => e.preventDefault()} onClick={() => onStep(-1)} title={`Decrease ${label}`} style={stepButton}>▼</button>
+      </div>
     </div>
   );
 }
@@ -521,34 +552,69 @@ export default function SectionNotesPanel({
     });
   }
 
-  // Total length of the selected subsection(s), decomposed into
-  // bars.beats.eighths.sixteenths via the section's time signature and
-  // Bars/Beats values. Updates live while a division is being dragged.
-  function computeSubLengthLabel(row) {
-    const dur = selectedSection.endTime - selectedSection.time;
-    const subs = [...(row.subsections || [])].sort((a, b) => a.time - b.time);
-    let total = 0;
-    (subSel?.ids || []).forEach(k => {
-      let start, end;
-      if (k === "start") {
-        if (subs.length === 0) return;
-        start = selectedSection.time; end = subs[0].time;
-      } else {
-        const i = subs.findIndex(s => s.id === k);
-        if (i === -1) return;
-        start = subs[i].time;
-        end = i < subs.length - 1 ? subs[i + 1].time : selectedSection.endTime;
-      }
-      total += Math.max(0, end - start);
-    });
-    if (total <= 0) return null;
-    return musicalLengthParts(total, {
-      sectionDuration: dur,
+  function lengthOptions() {
+    return {
+      sectionDuration: selectedSection.endTime - selectedSection.time,
       bars,
       timeSigN: selectedSection.timeSigN || 4,
       timeSigD: selectedSection.timeSigD || 4,
       beatsOverride: beats,
+    };
+  }
+
+  // Segments are indexed by their sorted position in the row; -1 is the lead-in before the first division.
+  function selectedSubSpan(row) {
+    const subs = [...(row.subsections || [])].sort((a, b) => a.time - b.time);
+    const segs = [];
+    let seconds = 0;
+    (subSel?.ids || []).forEach(k => {
+      let start, end, seg;
+      if (k === "start") {
+        if (subs.length === 0) return;
+        seg = -1; start = selectedSection.time; end = subs[0].time;
+      } else {
+        const i = subs.findIndex(s => s.id === k);
+        if (i === -1) return;
+        seg = i; start = subs[i].time;
+        end = i < subs.length - 1 ? subs[i + 1].time : selectedSection.endTime;
+      }
+      segs.push(seg);
+      seconds += Math.max(0, end - start);
     });
+    return { subs, segs, seconds };
+  }
+
+  function computeSubLength(row) {
+    const { seconds } = selectedSubSpan(row);
+    return seconds > 0 ? lengthParts(seconds, lengthOptions()) : null;
+  }
+
+  // Moves the division edge just after the selection (or the edge at its start
+  // when the selection runs to the end of the row) so the selected length changes
+  // by one unit of the chosen field.
+  function adjustSubLength(row, field, dir) {
+    const ctx = lengthContext(lengthOptions());
+    if (!ctx) return;
+    const { subs, segs, seconds } = selectedSubSpan(row);
+    if (segs.length === 0) return;
+    const curUnits = Math.round(seconds / ctx.sixteenthSec);
+    const nextUnits = Math.max(1, curUnits + dir * lengthUnitSize(field, ctx.beatsPerBar));
+    if (nextUnits === curUnits) return;
+    const deltaSec = (nextUnits - curUnits) * ctx.sixteenthSec;
+    const working = subs.map(s => ({ ...s }));
+    const maxSeg = Math.max(...segs);
+    const minSeg = Math.min(...segs);
+    let k, shift;
+    if (maxSeg + 1 < working.length) { k = maxSeg + 1; shift = deltaSec; }
+    else if (minSeg >= 0) { k = minSeg; shift = -deltaSec; }
+    else return;
+    const prevStart = k > 0 ? working[k - 1].time : selectedSection.time;
+    const nextEnd = k + 1 < working.length ? working[k + 1].time : selectedSection.endTime;
+    working[k].time = Math.min(
+      Math.max(working[k].time + shift, prevStart + ctx.sixteenthSec),
+      nextEnd - ctx.sixteenthSec,
+    );
+    updateRows(rows.map(r => (r.id === row.id ? { ...r, subsections: working } : r)));
   }
 
   const borderColor = selectedSection.color;
@@ -684,8 +750,9 @@ export default function SectionNotesPanel({
             <NoteRow
               row={row} idx={idx} borderColor={borderColor}
               rowCount={rows.length} selectedSection={selectedSection}
-              subLengthLabel={subSel?.rowId === row.id ? computeSubLengthLabel(row) : null}
+              subLength={subSel?.rowId === row.id ? computeSubLength(row) : null}
               subLengthActive={stripFocus?.sectionId === sectionId && stripFocus?.rowId === row.id}
+              onAdjustSubLength={(field, dir) => adjustSubLength(row, field, dir)}
               onUpdate={updateRow}
               onRequestDelete={requestDeleteRow}
               collapsed={!!collapsedRows[row.id]}
