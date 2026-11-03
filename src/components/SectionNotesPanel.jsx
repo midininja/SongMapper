@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import SubsectionNotes from "@/components/SubsectionNotes";
 import { useComments } from "@/components/NoteComments";
-import { lengthContext, lengthParts, lengthUnitSize, LENGTH_FIELDS } from "@/lib/musicalTime";
+import { lengthContext, lengthParts, LENGTH_FIELDS } from "@/lib/musicalTime";
 
 const DYNAMIC_VALUES = ["ppp", "pp", "p", "mp", "mf", "f", "ff", "fff"];
 const BARS_OPTIONS = Array.from({ length: 120 }, (_, i) => i + 1);
@@ -51,6 +51,21 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
   const textareaRef = useRef(null);
   const commentActions = useComments();
   const isOver = dragOverIdx === idx && dragIdx !== idx;
+  const lengthRefs = useRef([]);
+  const [focusedLength, setFocusedLength] = useState(null);
+
+  function handleLengthKeyDown(e, index) {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      onAdjustSubLength(e.key === "ArrowUp" ? 1 : -1);
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const nextIndex = index + (e.key === "ArrowRight" ? 1 : -1);
+      if (nextIndex >= 0 && nextIndex < LENGTH_FIELDS.length) lengthRefs.current[nextIndex]?.focus();
+    }
+  }
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -154,15 +169,23 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
               <div
                 data-notearea="true"
                 onMouseDown={e => e.stopPropagation()}
-                title="Selected subsection length (bars.beats.eighths.sixteenths)"
-                style={{ position: "absolute", top: 5, right: 58, height: 22, display: "flex", alignItems: "center", gap: 4, color: subLengthActive ? "#f39c12" : "#999", fontFamily: "monospace", userSelect: "none", WebkitUserSelect: "none" }}
+                title="Selected subsection length (bars.beats.sixteenths)"
+                style={{ position: "absolute", top: 5, right: 58, height: 22, display: "flex", alignItems: "center", gap: 5, color: subLengthActive ? "#f39c12" : "#999", fontFamily: "monospace", userSelect: "none", WebkitUserSelect: "none" }}
               >
                 {LENGTH_FIELDS.map((field, i) => (
                   <div key={field} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     {i > 0 && <span style={{ fontSize: 9 }}>.</span>}
-                    <LengthBox value={subLength[field]} label={field} onStep={dir => onAdjustSubLength(field, dir)} />
+                    <LengthBox
+                      ref={el => { lengthRefs.current[i] = el; }}
+                      value={subLength[field]}
+                      label={field}
+                      focused={focusedLength === i}
+                      onFocus={() => setFocusedLength(i)}
+                      onKeyDown={e => handleLengthKeyDown(e, i)}
+                    />
                   </div>
                 ))}
+                <LengthStepper onStep={onAdjustSubLength} />
               </div>
             )}
             <select
@@ -212,23 +235,36 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
 }
 
 // ── LengthBox ─────────────────────────────────────────────────────────────────
-function LengthBox({ value, label, onStep }) {
+const LengthBox = React.forwardRef(function LengthBox({ value, label, focused, onFocus, onKeyDown }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      data-notearea="true"
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
+      title={`${label}; left/right selects a field, up/down changes by one sixteenth`}
+      style={{
+        minWidth: 20, height: 20, boxSizing: "border-box", padding: "0 3px",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        border: `1px solid ${focused ? "#f39c12" : "currentColor"}`, borderRadius: 3, fontSize: 10,
+        background: focused ? "#fff4df" : "transparent", color: "inherit", cursor: "pointer", fontFamily: "monospace",
+        outline: "none",
+      }}
+    >{value}</button>
+  );
+});
+
+function LengthStepper({ onStep }) {
   const stepButton = {
     background: "transparent", border: "none", padding: 0, margin: 0,
     width: 10, height: 9, lineHeight: 1, fontSize: 6, color: "inherit",
     cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
   };
   return (
-    <div title={label} style={{ display: "flex", alignItems: "center", gap: 2 }}>
-      <span style={{
-        minWidth: 18, height: 18, boxSizing: "border-box", padding: "0 3px",
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        border: "1px solid currentColor", borderRadius: 3, fontSize: 10,
-      }}>{value}</span>
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <button onMouseDown={e => e.preventDefault()} onClick={() => onStep(1)} title={`Increase ${label}`} style={stepButton}>▲</button>
-        <button onMouseDown={e => e.preventDefault()} onClick={() => onStep(-1)} title={`Decrease ${label}`} style={stepButton}>▼</button>
-      </div>
+    <div title="Change selected length by one sixteenth" style={{ display: "flex", flexDirection: "column" }}>
+      <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => onStep(1)} title="Increase by one sixteenth" style={stepButton}>▲</button>
+      <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => onStep(-1)} title="Decrease by one sixteenth" style={stepButton}>▼</button>
     </div>
   );
 }
@@ -589,16 +625,15 @@ export default function SectionNotesPanel({
     return seconds > 0 ? lengthParts(seconds, lengthOptions()) : null;
   }
 
-  // Moves the division edge just after the selection (or the edge at its start
-  // when the selection runs to the end of the row) so the selected length changes
-  // by one unit of the chosen field.
-  function adjustSubLength(row, field, dir) {
+  // Moves the division edge just after the selection, or the edge at its start
+  // when the selection runs to the end of the row, by one sixteenth.
+  function adjustSubLength(row, dir) {
     const ctx = lengthContext(lengthOptions());
     if (!ctx) return;
     const { subs, segs, seconds } = selectedSubSpan(row);
     if (segs.length === 0) return;
     const curUnits = Math.round(seconds / ctx.sixteenthSec);
-    const nextUnits = Math.max(1, curUnits + dir * lengthUnitSize(field, ctx.beatsPerBar));
+    const nextUnits = Math.max(1, curUnits + dir);
     if (nextUnits === curUnits) return;
     const deltaSec = (nextUnits - curUnits) * ctx.sixteenthSec;
     const working = subs.map(s => ({ ...s }));
@@ -752,7 +787,7 @@ export default function SectionNotesPanel({
               rowCount={rows.length} selectedSection={selectedSection}
               subLength={subSel?.rowId === row.id ? computeSubLength(row) : null}
               subLengthActive={stripFocus?.sectionId === sectionId && stripFocus?.rowId === row.id}
-              onAdjustSubLength={(field, dir) => adjustSubLength(row, field, dir)}
+              onAdjustSubLength={dir => adjustSubLength(row, dir)}
               onUpdate={updateRow}
               onRequestDelete={requestDeleteRow}
               collapsed={!!collapsedRows[row.id]}
