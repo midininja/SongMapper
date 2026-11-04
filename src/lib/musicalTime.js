@@ -5,8 +5,8 @@ const SIXTEENTHS_PER_BEAT = 4;
 export const LENGTH_FIELDS = ["bars", "beats", "sixteenths"];
 
 export function lengthContext({ sectionDuration, bars, timeSigN = 4, timeSigD = 4, beatsOverride }) {
-  const barsVal = parseInt(bars, 10) || 1;
-  if (barsVal <= 0 || !(sectionDuration > 0)) return null;
+  const barsVal = parseInt(bars, 10);
+  if (!barsVal || barsVal <= 0 || !(sectionDuration > 0)) return null;
   const compound = (timeSigD === 8 || timeSigD === 16) && timeSigN % 3 === 0 && timeSigN >= 6;
   const beatsPerBar = parseInt(beatsOverride, 10) || (compound ? timeSigN / 3 : timeSigN);
   if (!beatsPerBar || beatsPerBar <= 0) return null;
