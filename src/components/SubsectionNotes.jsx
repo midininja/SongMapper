@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { SAMPLER_KEYS } from "@/components/mapControls";
 import { useComments } from "@/components/NoteComments";
+import { snapToSixteenth } from "@/lib/musicalTime";
 
 const SN = {
   previewFg: "#888",
@@ -28,7 +29,8 @@ function stripHtml(html) {
 // "add row" hover button sits at the bottom of the whole block.
 export default function SubsectionNotes({ section, row, rows, notes, commitNotes, previewNotes,
   currentTime = 0, onSeek, selectedSubIds = [], selectionActive = true, onSelectSub, samplerOffset = 0,
-  rowCollapsed = false, subExpanded = false, onToggleSubExpanded, onEnsureSubExpanded, onAddRowBelow, onStripFocus }) {
+  rowCollapsed = false, subExpanded = false, onToggleSubExpanded, onEnsureSubExpanded, onAddRowBelow, onStripFocus,
+  snapEnabled = true }) {
   const stripRef = useRef(null);
   const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -139,9 +141,20 @@ export default function SubsectionNotes({ section, row, rows, notes, commitNotes
 
   function handleAdd() {
     if (!canAdd) return;
+    let t = currentTime;
+    if (snapEnabled) {
+      t = snapToSixteenth(t, {
+        sectionStart: section.time,
+        sectionDuration: dur,
+        bars: section.bars,
+        timeSigN: section.timeSigN || 4,
+        timeSigD: section.timeSigD || 4,
+        beatsOverride: section.beats,
+      });
+    }
     const newNotes = withRowNotes(r => ({
       ...r,
-      subsections: [...(r.subsections || []), { id: `sub-${Date.now()}`, time: currentTime, label: null }].sort((a, b) => a.time - b.time),
+      subsections: [...(r.subsections || []), { id: `sub-${Date.now()}`, time: t, label: null }].sort((a, b) => a.time - b.time),
     }));
     commitNotes(newNotes);
     onEnsureSubExpanded?.();
@@ -217,7 +230,18 @@ export default function SubsectionNotes({ section, row, rows, notes, commitNotes
     let moved = false;
     const move = (ev) => {
       moved = true;
-      const t = Math.max(lo + 0.05, Math.min(hi - 0.05, timeFromClientX(ev.clientX)));
+      let t = Math.max(lo + 0.05, Math.min(hi - 0.05, timeFromClientX(ev.clientX)));
+      if (snapEnabled) {
+        t = snapToSixteenth(t, {
+          sectionStart: section.time,
+          sectionDuration: dur,
+          bars: section.bars,
+          timeSigN: section.timeSigN || 4,
+          timeSigD: section.timeSigD || 4,
+          beatsOverride: section.beats,
+        });
+        t = Math.max(lo + 0.05, Math.min(hi - 0.05, t));
+      }
       latestPreviewRef.current = withRowNotes(r => ({ ...r, subsections: (r.subsections || []).map(x => x.id === sub.id ? { ...x, time: t } : x) }));
       previewNotes(latestPreviewRef.current);
     };

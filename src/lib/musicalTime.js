@@ -13,6 +13,14 @@ export function lengthContext({ sectionDuration, bars, timeSigN = 4, timeSigD = 
   return { beatsPerBar, sixteenthSec: sectionDuration / barsVal / beatsPerBar / SIXTEENTHS_PER_BEAT };
 }
 
+export function snapToSixteenth(seconds, { sectionStart, sectionDuration, bars, timeSigN = 4, timeSigD = 4, beatsOverride }) {
+  const ctx = lengthContext({ sectionDuration, bars, timeSigN, timeSigD, beatsOverride });
+  if (!ctx || ctx.sixteenthSec <= 0) return seconds;
+  const offset = seconds - sectionStart;
+  const units = Math.round(offset / ctx.sixteenthSec);
+  return sectionStart + units * ctx.sixteenthSec;
+}
+
 export function lengthParts(totalSeconds, opts) {
   const ctx = lengthContext(opts);
   if (!ctx || !(totalSeconds > 0)) return null;

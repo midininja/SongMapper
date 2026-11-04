@@ -45,7 +45,7 @@ function stripHtml(html) {
 
 // ── NoteRow ───────────────────────────────────────────────────────────────────
 function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
-  subLength, subLengthActive, onAdjustSubLength,
+  subLength, subLengthActive, onAdjustSubLength, snapEnabled, onToggleSnap,
   onUpdate, onRequestDelete, collapsed, onToggleCollapse,
   dragIdx, dragOverIdx, onDragStart, onDragEnd, onDragOver, onDrop }) {
   const textareaRef = useRef(null);
@@ -156,7 +156,7 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
                 width: "100%", boxSizing: "border-box",
                 background: "transparent",
                 color: NP.textFg, fontSize: 13,
-                padding: subLength ? "7px 216px 7px 10px" : "7px 60px 7px 10px",
+                padding: subLength ? "7px 236px 7px 10px" : "7px 60px 7px 10px",
                 border: "none", outline: "none",
                 fontFamily: "inherit", lineHeight: 1.6,
                 minHeight: 36,
@@ -186,6 +186,19 @@ function NoteRow({ row, idx, borderColor, rowCount, selectedSection,
                   </div>
                 ))}
                 <LengthStepper onStep={onAdjustSubLength} />
+                <button
+                  type="button"
+                  data-notearea="true"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={onToggleSnap}
+                  title={snapEnabled ? "Snap to 16th-note divisions (on)" : "Snap to 16th-note divisions (off)"}
+                  style={{
+                    background: "transparent", border: "none", padding: 0, margin: 0,
+                    fontSize: 11, lineHeight: 1, cursor: "pointer",
+                    color: snapEnabled ? "#f39c12" : "#ccc",
+                    filter: snapEnabled ? "none" : "grayscale(1) opacity(0.6)",
+                  }}
+                >🧲</button>
               </div>
             )}
             <select
@@ -361,6 +374,7 @@ export default function SectionNotesPanel({
   const [collapsedRows, setCollapsedRows] = useState({});
   const [bars, setBars] = useState("");
   const [beats, setBeats] = useState("");
+  const [snapEnabled, setSnapEnabled] = useState(true);
   const [subExpandedRows, setSubExpandedRows] = useState({});
   const dragNodeRef = useRef(null);
 
@@ -788,6 +802,8 @@ export default function SectionNotesPanel({
               subLength={subSel?.rowId === row.id ? computeSubLength(row) : null}
               subLengthActive={stripFocus?.sectionId === sectionId && stripFocus?.rowId === row.id}
               onAdjustSubLength={dir => adjustSubLength(row, dir)}
+              snapEnabled={snapEnabled}
+              onToggleSnap={() => setSnapEnabled(v => !v)}
               onUpdate={updateRow}
               onRequestDelete={requestDeleteRow}
               collapsed={!!collapsedRows[row.id]}
@@ -815,6 +831,7 @@ export default function SectionNotesPanel({
               selectionActive={stripFocus?.sectionId === sectionId && stripFocus?.rowId === row.id}
               onSelectSub={(key, mods) => handleSubSelect(row.id, key, mods)}
               samplerOffset={samplerOffset}
+              snapEnabled={snapEnabled}
             />
           </div>
         ))}
